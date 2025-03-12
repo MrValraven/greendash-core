@@ -1,0 +1,36 @@
+# Ignore node_modules and build output
+node_modules/
+dist/
+build/
+
+# Ignore package lock files
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Ignore environment variables
+.env
+.env.*
+
+# Ignore Vite cache
+.vite/
+
+# Ignore next.js and remix build cache (if applicable)
+.next/
+.remix/
+
+# Ignore compiled TypeScript files
+*.js
+*.d.ts
+*.map
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore public assets that shouldn’t be formatted
+public/
+
+# Ignore Prettier itself's config
+.prettierrc*
+.prettierignore
