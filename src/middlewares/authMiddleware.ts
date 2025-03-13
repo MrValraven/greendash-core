@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 
 export function verifyToken(req: Request, res: Response, next: NextFunction) {
-  const token = req.headers['Authorization'];
+  const token = req.headers['authorization']?.split(' ')[1];
+
   if (!token) {
     res.status(401).json({ error: 'Unauthorized' });
     return;
@@ -19,6 +20,7 @@ export function verifyToken(req: Request, res: Response, next: NextFunction) {
 
     next();
   } catch (error) {
+    console.error('Error verifying token:', error);
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
