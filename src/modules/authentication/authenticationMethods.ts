@@ -28,6 +28,9 @@ const loginUserAccount = async (email: string, password: string) => {
     throw new Error(ERRORS.INVALID_CREDENTIALS);
   }
 
+  //temporary function to remove all refresh tokens from database every time user logs in)
+  await authenticationDB.removeAllUserRefreshTokensFromDatabase(user.id);
+
   const accessToken = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET!, {
     expiresIn: '30s',
   });

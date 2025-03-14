@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, lt } from 'drizzle-orm';
 import { db } from '../../db';
 import { usersTable } from '../../db/schemas/users.sql';
 import { refreshTokensTable } from '../../db/schemas/refreshTokens.sql';
@@ -72,8 +72,22 @@ const getRefreshTokenFromDatabase = async (
   return tokenRecord[0];
 };
 
-const removeRefreshTokenFromDatabase = async (refreshToken: string): Promise<void> => {
-  await db.delete(refreshTokensTable).where(eq(refreshTokensTable.token, refreshToken));
+const removeRefreshTokenFromDatabase = async (refreshToken: string): Promise<number> => {
+  const deletedTokens = await db
+    .delete(refreshTokensTable)
+    .where(eq(refreshTokensTable.token, refreshToken))
+    .returning({ deletedId: refreshTokensTable.id });
+
+  return deletedTokens.length;
+};
+
+const removeAllUserRefreshTokensFromDatabase = async (userId: number): Promise<number> => {
+  const deletedTokens = await db
+    .delete(refreshTokensTable)
+    .where(eq(refreshTokensTable.user_id, userId))
+    .returning({ deletedId: refreshTokensTable.id });
+
+  return deletedTokens.length; // Return the number of deleted tokens
 };
 
 export default {
@@ -82,4 +96,5 @@ export default {
   storeRefreshTokenInDatabase,
   getRefreshTokenFromDatabase,
   removeRefreshTokenFromDatabase,
+  removeAllUserRefreshTokensFromDatabase,
 };
