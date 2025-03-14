@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { verify } from 'jsonwebtoken';
 import { hashPassword, validatePassword } from './authentication.utils';
 import { ERRORS } from './authenticationErrors';
 import authenticationDB from './authenticationDB';
@@ -28,12 +28,26 @@ const loginUserAccount = async (email: string, password: string) => {
     throw new Error(ERRORS.INVALID_CREDENTIALS);
   }
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+  const accessToken = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET!, {
+    expiresIn: '30s',
+  });
+
+  const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_TOKEN!, {
     expiresIn: '1d',
   });
 
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 1);
+
+  await authenticationDB.storeRefreshTokenInDatabase(user.id, refreshToken, expiresAt);
+
   // we should send token in http only cookie
-  return token;
+  return { accessToken, refreshToken };
 };
 
-export default { registerUserAccount, loginUserAccount };
+const verifyRefreshToken = async (userId: number, refreshToken: string): Promise<boolean> => {
+  const tokenRecord = await authenticationDB.getRefreshTokenFromDatabase(userId, refreshToken);
+  return tokenRecord ? true : false;
+};
+
+export default { registerUserAccount, loginUserAccount, verifyRefreshToken };

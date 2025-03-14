@@ -18,6 +18,8 @@ router.post(
   authenticationController.loginUserAccount,
 );
 
+router.get('/auth/refresh', authenticationController.refreshAccessToken);
+
 router.get('/auth/logout', verifyToken, authenticationController.logoutUserAccount);
 
 export default router;
