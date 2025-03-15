@@ -9,4 +9,8 @@ const validatePassword = async (password: string, hashedPassword: string) => {
   return await bcrypt.compare(password, hashedPassword);
 };
 
-export { hashPassword, validatePassword };
+const generateVerificationToken = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+export { hashPassword, validatePassword, generateVerificationToken };
