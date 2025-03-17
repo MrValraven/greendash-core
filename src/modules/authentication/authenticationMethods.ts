@@ -4,8 +4,8 @@ import { ERRORS } from './authenticationErrors';
 import authenticationDB from './authenticationDB';
 
 const registerUserAccount = async (email: string, password: string) => {
-  const user = await authenticationDB.getUserFromDatabase(email);
-  if (user) {
+  const userInDatabase = await authenticationDB.getUserFromDatabase(email);
+  if (userInDatabase) {
     throw new Error(ERRORS.EMAIL_IN_USE);
   }
 
@@ -37,12 +37,29 @@ const loginUserAccount = async (email: string, password: string) => {
     throw new Error(ERRORS.INVALID_CREDENTIALS);
   }
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+  //temporary function to remove all refresh tokens from database every time user logs in)
+  await authenticationDB.removeAllUserRefreshTokensFromDatabase(user.id);
+
+  const accessToken = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET!, {
+    expiresIn: '30s',
+  });
+
+  const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_TOKEN!, {
     expiresIn: '1d',
   });
 
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 1);
+
+  await authenticationDB.storeRefreshTokenInDatabase(user.id, refreshToken, expiresAt);
+
   // we should send token in http only cookie
-  return token;
+  return { accessToken, refreshToken };
 };
 
-export default { registerUserAccount, loginUserAccount };
+const verifyRefreshToken = async (userId: number, refreshToken: string): Promise<boolean> => {
+  const tokenRecord = await authenticationDB.getRefreshTokenFromDatabase(userId, refreshToken);
+  return tokenRecord ? true : false;
+};
+
+export default { registerUserAccount, loginUserAccount, verifyRefreshToken };
