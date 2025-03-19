@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { ERRORS } from './authenticationErrors';
+import { generateToken } from './authentication.utils';
 import authenticationMethods from './authenticationMethods';
-import authenticationDB from './authenticationDB';
 
 interface FormattedError extends Error {
   statusCode?: number;
@@ -66,9 +66,7 @@ const refreshAccessToken = async (request: Request, response: Response) => {
       response.status(403);
     }
 
-    const accessToken = jwt.sign({ userId: decoded.userId }, process.env.ACCESS_TOKEN_SECRET!, {
-      expiresIn: '30s',
-    });
+    const accessToken = generateToken(decoded.userId, process.env.ACCESS_TOKEN_SECRET!, '30s');
 
     response.cookie('token', accessToken, { httpOnly: true });
     response.status(200).json({ message: 'Access token refreshed successfully', accessToken });
@@ -80,12 +78,6 @@ const refreshAccessToken = async (request: Request, response: Response) => {
 
 const logoutUserAccount = async (request: Request, response: Response) => {
   try {
-    const { refreshToken } = request.cookies;
-
-    if (refreshToken) {
-      await authenticationDB.removeRefreshTokenFromDatabase(refreshToken);
-    }
-
     response.clearCookie('token');
     response.clearCookie('refreshToken');
     response.status(200).json({ message: 'User logged out successfully' });

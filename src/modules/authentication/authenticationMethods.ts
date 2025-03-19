@@ -1,6 +1,7 @@
-import jwt from 'jsonwebtoken';
-import { hashPassword, validatePassword, generateVerificationToken } from './authentication.utils';
+import { hashPassword, validatePassword, generateVerificationCode } from './authentication.utils';
+import { sendVerificationEmail } from '../mail/mailService';
 import { ERRORS } from './authenticationErrors';
+import { generateToken } from './authentication.utils';
 import authenticationDB from './authenticationDB';
 
 const registerUserAccount = async (email: string, password: string) => {
@@ -11,15 +12,19 @@ const registerUserAccount = async (email: string, password: string) => {
 
   const passwordHash = await hashPassword(password);
 
-  const verificationToken = generateVerificationToken();
-  const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  const verificationCode = generateVerificationCode();
+  const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
+  const tomorrowDate = new Date(Date.now() + oneDayInMilliseconds);
+  const verificationCodeExpires = tomorrowDate;
 
   const createdUser = await authenticationDB.createUserInDatabase(
     email,
     passwordHash,
-    verificationToken,
-    verificationTokenExpires,
+    verificationCode,
+    verificationCodeExpires,
   );
+
+  await sendVerificationEmail(email, verificationCode);
 
   return createdUser;
 };
@@ -37,29 +42,26 @@ const loginUserAccount = async (email: string, password: string) => {
     throw new Error(ERRORS.INVALID_CREDENTIALS);
   }
 
-  //temporary function to remove all refresh tokens from database every time user logs in)
-  await authenticationDB.removeAllUserRefreshTokensFromDatabase(user.id);
+  const accessToken = generateToken(user.id, process.env.ACCESS_TOKEN_SECRET!, '30s');
 
-  const accessToken = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET!, {
-    expiresIn: '30s',
-  });
-
-  const refreshToken = jwt.sign({ userId: user.id }, process.env.REFRESH_TOKEN_TOKEN!, {
-    expiresIn: '1d',
-  });
+  const refreshToken = generateToken(user.id, process.env.REFRESH_TOKEN_TOKEN!, '1d');
 
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 1);
 
-  await authenticationDB.storeRefreshTokenInDatabase(user.id, refreshToken, expiresAt);
+  await authenticationDB.storeRefreshTokenInDatabase(user.id, refreshToken);
 
   // we should send token in http only cookie
   return { accessToken, refreshToken };
 };
 
 const verifyRefreshToken = async (userId: number, refreshToken: string): Promise<boolean> => {
-  const tokenRecord = await authenticationDB.getRefreshTokenFromDatabase(userId, refreshToken);
-  return tokenRecord ? true : false;
+  const storedRefreshToken = await authenticationDB.getRefreshTokenFromDatabase(
+    userId,
+    refreshToken,
+  );
+
+  return storedRefreshToken === refreshToken;
 };
 
 export default { registerUserAccount, loginUserAccount, verifyRefreshToken };
