@@ -23,6 +23,7 @@ const createUserInDatabase = async (
       hashed_password: usersTable.hashed_password,
       verification_code: usersTable.verification_code,
       verification_code_expires: usersTable.verification_code_expires,
+      email_verified: usersTable.email_verified,
       role: usersTable.role,
     });
 
