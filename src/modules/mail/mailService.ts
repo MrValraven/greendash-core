@@ -1,6 +1,7 @@
 import { mailtrapClient, sender } from './mail.config';
 
-export const sendVerificationEmail = async (email: string, verificationCode: string) => {
+export const sendVerificationEmail = async (email: string, verificationToken: string) => {
+  const verificationUrl = `http://localhost:3001/verify-email?verificationToken=${verificationToken}`;
   const recipient = [{ email }];
 
   try {
@@ -8,7 +9,12 @@ export const sendVerificationEmail = async (email: string, verificationCode: str
       from: sender,
       to: recipient,
       subject: 'Verify your email address',
-      text: `Your verification code is: ${verificationCode}`,
+      html: `
+        <h1>Welcome to Our Service!</h1>
+        <p>Please verify your email address by clicking the link below:</p>
+        <a href="${verificationUrl}">Verify Email</a>
+        <p>If you didn't create an account, you can safely ignore this email.</p>
+      `,
       category: 'Email Verification',
     });
 

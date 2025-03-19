@@ -19,8 +19,4 @@ const generateToken = (
   return jwt.sign({ userId }, secret!, { expiresIn });
 };
 
-const generateVerificationCode = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-export { hashPassword, validatePassword, generateToken, generateVerificationCode };
+export { hashPassword, validatePassword, generateToken };

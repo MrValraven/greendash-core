@@ -19,7 +19,7 @@ export const usersTable = table('users', {
   email: varchar('email').notNull(),
   hashed_password: varchar('hashed_password').notNull(),
   account_status: accountStatusEnum().default('pending'),
-  email_verified: boolean('email_verified').default(false),
+  email_verified: boolean('email_verified').default(false).notNull(),
   role: rolesEnum().notNull().default('user'),
 
   // Security & Authentication
@@ -27,8 +27,6 @@ export const usersTable = table('users', {
   locked_until: timestamp('locked_until'),
   password_reset_token: varchar('password_reset_token', { length: 512 }),
   password_reset_expires: timestamp('password_reset_expires'),
-  verification_code: varchar('verification_code', { length: 6 }),
-  verification_code_expires: timestamp('verification_code_expires').notNull(),
   refresh_token: varchar('refresh_token', { length: 512 }),
   two_factor_auth_enabled: boolean('two_factor_auth_enabled').default(false),
 

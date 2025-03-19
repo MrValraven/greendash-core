@@ -1,36 +1,29 @@
-import { hashPassword, validatePassword, generateVerificationCode } from './authentication.utils';
+import { hashPassword, validatePassword } from './authentication.utils';
 import { sendVerificationEmail } from '../mail/mailService';
 import { ERRORS } from './authenticationErrors';
 import { generateToken } from './authentication.utils';
 import authenticationDB from './authenticationDB';
 
 const registerUserAccount = async (email: string, password: string) => {
-  const userInDatabase = await authenticationDB.getUserFromDatabase(email);
+  const userInDatabase = await authenticationDB.getUserFromDatabase('email', email);
+
   if (userInDatabase) {
     throw new Error(ERRORS.EMAIL_IN_USE);
   }
 
   const passwordHash = await hashPassword(password);
 
-  const verificationCode = generateVerificationCode();
-  const oneDayInMilliseconds = 24 * 60 * 60 * 1000;
-  const tomorrowDate = new Date(Date.now() + oneDayInMilliseconds);
-  const verificationCodeExpires = tomorrowDate;
+  const createdUser = await authenticationDB.createUserInDatabase(email, passwordHash);
 
-  const createdUser = await authenticationDB.createUserInDatabase(
-    email,
-    passwordHash,
-    verificationCode,
-    verificationCodeExpires,
-  );
+  const verificationToken = generateToken(createdUser.id, process.env.VERIFY_TOKEN_SECRET!, '1d');
 
-  await sendVerificationEmail(email, verificationCode);
+  await sendVerificationEmail(email, verificationToken);
 
   return createdUser;
 };
 
 const loginUserAccount = async (email: string, password: string) => {
-  const user = await authenticationDB.getUserFromDatabase(email);
+  const user = await authenticationDB.getUserFromDatabase('email', email);
 
   if (!user) {
     throw new Error(ERRORS.USER_NOT_FOUND);
@@ -51,17 +44,7 @@ const loginUserAccount = async (email: string, password: string) => {
 
   await authenticationDB.storeRefreshTokenInDatabase(user.id, refreshToken);
 
-  // we should send token in http only cookie
   return { accessToken, refreshToken };
 };
 
-const verifyRefreshToken = async (userId: number, refreshToken: string): Promise<boolean> => {
-  const storedRefreshToken = await authenticationDB.getRefreshTokenFromDatabase(
-    userId,
-    refreshToken,
-  );
-
-  return storedRefreshToken === refreshToken;
-};
-
-export default { registerUserAccount, loginUserAccount, verifyRefreshToken };
+export default { registerUserAccount, loginUserAccount };

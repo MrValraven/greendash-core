@@ -3,26 +3,17 @@ import { db } from '../../db';
 import { usersTable } from '../../db/schemas/users.sql';
 import { User } from './authentication.types';
 
-const createUserInDatabase = async (
-  email: string,
-  hashedPassword: string,
-  verificationCode: string,
-  verificationCodeExpires: Date,
-): Promise<User> => {
+const createUserInDatabase = async (email: string, hashedPassword: string): Promise<User> => {
   const user = await db
     .insert(usersTable)
     .values({
       email: email,
       hashed_password: hashedPassword,
-      verification_code: verificationCode,
-      verification_code_expires: verificationCodeExpires,
     })
     .returning({
       id: usersTable.id,
       email: usersTable.email,
       hashed_password: usersTable.hashed_password,
-      verification_code: usersTable.verification_code,
-      verification_code_expires: usersTable.verification_code_expires,
       email_verified: usersTable.email_verified,
       role: usersTable.role,
     });
@@ -30,21 +21,46 @@ const createUserInDatabase = async (
   return user[0];
 };
 
-const getUserFromDatabase = async (email: string): Promise<User | undefined> => {
+const getUserFromDatabase = async (
+  valueType: 'id' | 'email',
+  value: number | string,
+): Promise<User | undefined> => {
   const userFromDB = await db
     .select({
       id: usersTable.id,
       email: usersTable.email,
       hashed_password: usersTable.hashed_password,
-      verification_code: usersTable.verification_code,
-      verification_code_expires: usersTable.verification_code_expires,
+      email_verified: usersTable.email_verified,
       role: usersTable.role,
     })
     .from(usersTable)
-    .where(eq(usersTable.email, email))
+    .where(eq(usersTable[valueType], value))
     .limit(1);
 
   return userFromDB[0];
+};
+
+const updateUserInDatabase = async (
+  userId: number,
+  updates: Partial<Omit<User, 'id'>>,
+): Promise<User | undefined> => {
+  if (Object.keys(updates).length === 0) {
+    throw new Error('No updates provided.');
+  }
+
+  const updatedUser = await db
+    .update(usersTable)
+    .set(updates)
+    .where(eq(usersTable.id, userId))
+    .returning({
+      id: usersTable.id,
+      email: usersTable.email,
+      hashed_password: usersTable.hashed_password,
+      email_verified: usersTable.email_verified,
+      role: usersTable.role,
+    });
+
+  return updatedUser[0];
 };
 
 const storeRefreshTokenInDatabase = async (
@@ -82,4 +98,5 @@ export default {
   createUserInDatabase,
   storeRefreshTokenInDatabase,
   getRefreshTokenFromDatabase,
+  updateUserInDatabase,
 };
