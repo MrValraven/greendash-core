@@ -22,4 +22,6 @@ router.get('/auth/refresh', authenticationController.refreshAccessToken);
 
 router.get('/auth/logout', verifyToken, authenticationController.logoutUserAccount);
 
+router.get('/auth/verify-email', authenticationController.verifyEmail);
+
 export default router;
