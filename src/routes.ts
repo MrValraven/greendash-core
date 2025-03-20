@@ -22,4 +22,8 @@ router.get('/auth/refresh', authenticationController.refreshAccessToken);
 
 router.get('/auth/logout', verifyToken, authenticationController.logoutUserAccount);
 
+router.post('/auth/password-reset-request', authenticationController.requestPasswordReset);
+
+router.post('/auth/password-reset', authenticationController.resetPassword);
+
 export default router;

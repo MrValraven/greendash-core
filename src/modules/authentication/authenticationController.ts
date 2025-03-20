@@ -1,8 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { ERRORS } from './authenticationErrors';
+import { generateToken, hashPassword } from './authentication.utils';
 import authenticationMethods from './authenticationMethods';
 import authenticationDB from './authenticationDB';
+import { sendPasswordResetEmail } from '../mail/mailService';
 
 interface FormattedError extends Error {
   statusCode?: number;
@@ -97,4 +99,119 @@ const logoutUserAccount = async (request: Request, response: Response) => {
   }
 };
 
-export default { registerUserAccount, loginUserAccount, refreshAccessToken, logoutUserAccount };
+const requestPasswordReset = async (request: Request, response: Response) => {
+  const { email } = request.body;
+
+  try {
+    const user = await authenticationDB.getUserFromDatabase('email', email);
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: ERRORS.USER_NOT_FOUND,
+      });
+      return;
+    }
+
+    const passwordResetToken = generateToken(
+      user.id,
+      process.env.PASSWORD_RESET_TOKEN_SECRET!,
+      '1h',
+    );
+
+    await sendPasswordResetEmail(email, passwordResetToken);
+
+    response.status(200).json({
+      success: true,
+      message: 'Password reset email send successfully',
+    });
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    response.status(500).json({
+      success: false,
+      message: 'Failed to process password reset request',
+    });
+  }
+};
+
+const resetPassword = async (request: Request, response: Response) => {
+  const { passwordResetToken } = request.query;
+  const { newPassword } = request.body;
+
+  if (!passwordResetToken) {
+    response.status(400).json({
+      success: false,
+      message: 'Password reset token is required',
+    });
+    return;
+  }
+
+  if (!newPassword) {
+    response.status(400).json({
+      success: false,
+      message: 'New Password is required',
+    });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(
+      passwordResetToken as string,
+      process.env.PASSWORD_RESET_TOKEN_SECRET!,
+    ) as {
+      userId: number;
+    };
+
+    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: ERRORS.USER_NOT_FOUND,
+      });
+      return;
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await authenticationDB.updateUserInDatabase(user.id, {
+      hashed_password: hashedPassword,
+    });
+
+    response.status(200).json({
+      success: true,
+      message: 'Password reset successfully',
+    });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      response.status(400).json({
+        success: false,
+        message: ERRORS.EXPIRED_PASSWORD_RESET_TOKEN,
+      });
+      return;
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_PASSWORD_RESET_TOKEN,
+      });
+      return;
+    }
+
+    console.error('Password reset error:', error);
+    response.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+    });
+  }
+};
+
+export default {
+  registerUserAccount,
+  loginUserAccount,
+  refreshAccessToken,
+  logoutUserAccount,
+  requestPasswordReset,
+  resetPassword,
+};

@@ -15,25 +15,53 @@ const createUserInDatabase = async (email: string, hashedPassword: string): Prom
       id: usersTable.id,
       email: usersTable.email,
       hashed_password: usersTable.hashed_password,
+      email_verified: usersTable.email_verified,
       role: usersTable.role,
     });
 
   return user[0];
 };
 
-const getUserFromDatabase = async (email: string): Promise<User | undefined> => {
+const getUserFromDatabase = async (
+  valueType: 'id' | 'email',
+  value: number | string,
+): Promise<User | undefined> => {
   const userFromDB = await db
     .select({
       id: usersTable.id,
       email: usersTable.email,
       hashed_password: usersTable.hashed_password,
+      email_verified: usersTable.email_verified,
       role: usersTable.role,
     })
     .from(usersTable)
-    .where(eq(usersTable.email, email))
+    .where(eq(usersTable[valueType], value))
     .limit(1);
 
   return userFromDB[0];
+};
+
+const updateUserInDatabase = async (
+  userId: number,
+  updates: Partial<Omit<User, 'id'>>,
+): Promise<User | undefined> => {
+  if (Object.keys(updates).length === 0) {
+    throw new Error('No updates provided.');
+  }
+
+  const updatedUser = await db
+    .update(usersTable)
+    .set(updates)
+    .where(eq(usersTable.id, userId))
+    .returning({
+      id: usersTable.id,
+      email: usersTable.email,
+      hashed_password: usersTable.hashed_password,
+      email_verified: usersTable.email_verified,
+      role: usersTable.role,
+    });
+
+  return updatedUser[0];
 };
 
 const storeRefreshTokenInDatabase = async (
@@ -97,4 +125,5 @@ export default {
   getRefreshTokenFromDatabase,
   removeRefreshTokenFromDatabase,
   removeAllUserRefreshTokensFromDatabase,
+  updateUserInDatabase,
 };
