@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { SignOptions } from 'jsonwebtoken';
 
 const hashPassword = async (password: string) => {
   const SALT_ROUNDS = 10;
@@ -14,7 +13,7 @@ const validatePassword = async (password: string, hashedPassword: string) => {
 const generateToken = (
   userId: number,
   secret: string,
-  expiresIn: SignOptions['expiresIn'],
+  expiresIn: jwt.SignOptions['expiresIn'],
 ): string => {
   return jwt.sign({ userId }, secret!, { expiresIn });
 };
