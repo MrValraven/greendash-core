@@ -1,6 +1,12 @@
-import jwt from 'jsonwebtoken';
+import jwt, { decode } from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { ERRORS } from './authenticationErrors';
+import { hashPassword, validatePassword } from './authentication.utils';
+import {
+  sendEmailAndPasswordChangeNotification,
+  sendEmailChangeNotification,
+  sendPasswordChangeNotification,
+} from '../mail/mailService';
 import authenticationMethods from './authenticationMethods';
 import authenticationDB from './authenticationDB';
 
@@ -97,4 +103,132 @@ const logoutUserAccount = async (request: Request, response: Response) => {
   }
 };
 
-export default { registerUserAccount, loginUserAccount, refreshAccessToken, logoutUserAccount };
+const editUserAccount = async (request: Request, response: Response) => {
+  const { email, password, currentPassword } = request.body;
+  const cookies = request.cookies;
+
+  if (!cookies?.token) {
+    response.status(401).json({
+      success: false,
+      message: ERRORS.ACCESS_TOKEN_NOT_FOUND,
+    });
+    return;
+  }
+
+  const token = cookies.token;
+
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as {
+      userId: number;
+    };
+
+    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    const isPasswordValid = await validatePassword(currentPassword, user.hashed_password);
+
+    if (!isPasswordValid) {
+      response.status(401).json({
+        success: false,
+        message: 'Invalid current password',
+      });
+      return;
+    }
+
+    const updates: Partial<{ email: string; hashed_password: string }> = {};
+    let emailChanged = false;
+    let passwordChanged = false;
+
+    if (email) {
+      if (email === user.email) {
+        return response.status(400).json({
+          success: false,
+          message: 'The new email cannot be the same as the current email',
+        });
+      }
+      updates.email = email;
+      emailChanged = true;
+    }
+
+    if (password) {
+      const isSamePassword = await validatePassword(password, user.hashed_password);
+      if (isSamePassword) {
+        return response.status(400).json({
+          success: false,
+          message: 'The new password cannot be the same as the current password',
+        });
+      }
+      updates.hashed_password = await hashPassword(password);
+      passwordChanged = true;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      response.status(400).json({
+        success: false,
+        message: 'No fields provided to update',
+      });
+      return;
+    }
+
+    const updatedUser = await authenticationDB.updateUserInDatabase(user.id, updates);
+
+    if (!updatedUser) {
+      response.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
+    if (emailChanged && passwordChanged) {
+      await sendEmailAndPasswordChangeNotification(user.email, email!);
+    } else if (emailChanged) {
+      await sendEmailChangeNotification(user.email, email!);
+    } else if (passwordChanged) {
+      await sendPasswordChangeNotification(user.email);
+    }
+
+    response.status(200).json({
+      success: true,
+      message: 'User account updated successfully',
+      user: updatedUser,
+    });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.EXPIRED_ACCESS_TOKEN,
+      });
+      return;
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_ACCESS_TOKEN,
+      });
+      return;
+    }
+
+    console.error('Error updating user account:', error);
+    response.status(500).json({
+      success: false,
+      message: 'Failed to update user account',
+    });
+  }
+};
+
+export default {
+  registerUserAccount,
+  loginUserAccount,
+  refreshAccessToken,
+  logoutUserAccount,
+  editUserAccount,
+};
