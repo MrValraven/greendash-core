@@ -27,9 +27,9 @@ router.get('/auth/refresh', authenticationController.refreshAccessToken);
 router.get('/auth/logout', verifyToken, authenticationController.logoutUserAccount);
 
 router.put(
-  '/auth/edit',
-  verifyToken,
+  '/auth/user',
   validateBodyData(editUserSchema),
+  verifyToken,
   authenticationController.editUserAccount,
 );
 
