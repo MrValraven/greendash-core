@@ -49,7 +49,6 @@ export const sendPasswordResetEmail = async (email: string, passwordResetToken: 
         <h1>Password Reset Request</h1>
         <p>You requested to reset your password. Click the link below to set a new password:</p>
         <a href="${resetUrl}">Reset Password</a>
-        <p>If you didn't create an account, you can safely ignore this email.</p>
         <p>If you didn't request this, please ignore this email and your password will remain unchanged.</p>
       `,
       category: 'Password Reset',
