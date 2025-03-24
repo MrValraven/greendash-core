@@ -26,4 +26,6 @@ router.post('/auth/password-reset-request', authenticationController.requestPass
 
 router.post('/auth/password-reset', authenticationController.resetPassword);
 
+router.get('/auth/verify-email', authenticationController.verifyEmail);
+
 export default router;

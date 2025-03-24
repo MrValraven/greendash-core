@@ -6,10 +6,5 @@ export interface User {
   role: 'user' | 'admin' | 'organization';
 }
 
-export interface RefreshToken {
-  id: number;
-  user_id: number;
-  token: string;
-  expires_at: Date;
-  created_at: Date | null;
-}
+export type UserField = 'id' | 'email';
+export type UserFieldValue = string | number;

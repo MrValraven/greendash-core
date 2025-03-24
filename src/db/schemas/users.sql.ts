@@ -27,6 +27,7 @@ export const usersTable = table('users', {
   locked_until: timestamp('locked_until'),
   password_reset_token: varchar('password_reset_token', { length: 512 }),
   password_reset_expires: timestamp('password_reset_expires'),
+  refresh_token: varchar('refresh_token', { length: 512 }),
   two_factor_auth_enabled: boolean('two_factor_auth_enabled').default(false),
 
   // Monetization & Usage Tracking

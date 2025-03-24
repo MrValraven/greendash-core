@@ -1,8 +1,7 @@
-import { eq, and, lt } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../../db';
 import { usersTable } from '../../db/schemas/users.sql';
-import { refreshTokensTable } from '../../db/schemas/refreshTokens.sql';
-import { User, RefreshToken } from './authentication.types';
+import { User, UserField, UserFieldValue } from './authentication.types';
 
 const createUserInDatabase = async (email: string, hashedPassword: string): Promise<User> => {
   const user = await db
@@ -23,8 +22,8 @@ const createUserInDatabase = async (email: string, hashedPassword: string): Prom
 };
 
 const getUserFromDatabase = async (
-  valueType: 'id' | 'email',
-  value: number | string,
+  field: UserField,
+  value: UserFieldValue,
 ): Promise<User | undefined> => {
   const userFromDB = await db
     .select({
@@ -35,7 +34,7 @@ const getUserFromDatabase = async (
       role: usersTable.role,
     })
     .from(usersTable)
-    .where(eq(usersTable[valueType], value))
+    .where(eq(usersTable[field], value))
     .limit(1);
 
   return userFromDB[0];
@@ -44,7 +43,7 @@ const getUserFromDatabase = async (
 const updateUserInDatabase = async (
   userId: number,
   updates: Partial<Omit<User, 'id'>>,
-): Promise<User | undefined> => {
+): Promise<Omit<User, 'hashed_password'> | undefined> => {
   if (Object.keys(updates).length === 0) {
     throw new Error('No updates provided.');
   }
@@ -56,7 +55,6 @@ const updateUserInDatabase = async (
     .returning({
       id: usersTable.id,
       email: usersTable.email,
-      hashed_password: usersTable.hashed_password,
       email_verified: usersTable.email_verified,
       role: usersTable.role,
     });
@@ -67,55 +65,31 @@ const updateUserInDatabase = async (
 const storeRefreshTokenInDatabase = async (
   userId: number,
   token: string,
-  expiresAt: Date,
-): Promise<RefreshToken | undefined> => {
-  const refreshToken = await db
-    .insert(refreshTokensTable)
-    .values({
-      user_id: userId,
-      token: token,
-      expires_at: expiresAt,
+): Promise<string | null> => {
+  const user = await db
+    .update(usersTable)
+    .set({
+      refresh_token: token,
     })
+    .where(eq(usersTable.id, userId))
     .returning({
-      id: refreshTokensTable.id,
-      user_id: refreshTokensTable.user_id,
-      token: refreshTokensTable.token,
-      expires_at: refreshTokensTable.expires_at,
-      created_at: refreshTokensTable.created_at,
+      refresh_token: usersTable.refresh_token,
     });
 
-  return refreshToken[0];
+  return user[0]?.refresh_token;
 };
 
 const getRefreshTokenFromDatabase = async (
   userId: number,
   token: string,
-): Promise<RefreshToken | undefined> => {
-  const tokenRecord = await db
-    .select()
-    .from(refreshTokensTable)
-    .where(and(eq(refreshTokensTable.user_id, userId), eq(refreshTokensTable.token, token)))
+): Promise<string | null> => {
+  const user = await db
+    .select({ refresh_token: usersTable.refresh_token })
+    .from(usersTable)
+    .where(and(eq(usersTable.id, userId), eq(usersTable.refresh_token, token)))
     .limit(1);
 
-  return tokenRecord[0];
-};
-
-const removeRefreshTokenFromDatabase = async (refreshToken: string): Promise<number> => {
-  const deletedTokens = await db
-    .delete(refreshTokensTable)
-    .where(eq(refreshTokensTable.token, refreshToken))
-    .returning({ deletedId: refreshTokensTable.id });
-
-  return deletedTokens.length;
-};
-
-const removeAllUserRefreshTokensFromDatabase = async (userId: number): Promise<number> => {
-  const deletedTokens = await db
-    .delete(refreshTokensTable)
-    .where(eq(refreshTokensTable.user_id, userId))
-    .returning({ deletedId: refreshTokensTable.id });
-
-  return deletedTokens.length; // Return the number of deleted tokens
+  return user[0]?.refresh_token;
 };
 
 export default {
@@ -123,7 +97,5 @@ export default {
   createUserInDatabase,
   storeRefreshTokenInDatabase,
   getRefreshTokenFromDatabase,
-  removeRefreshTokenFromDatabase,
-  removeAllUserRefreshTokensFromDatabase,
   updateUserInDatabase,
 };

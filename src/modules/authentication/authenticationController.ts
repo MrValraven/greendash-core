@@ -15,7 +15,10 @@ const registerUserAccount = async (request: Request, response: Response) => {
 
   try {
     const user = await authenticationMethods.registerUserAccount(email, password);
-    response.status(201).json(user);
+    response.status(201).json({
+      success: true,
+      user,
+    });
   } catch (error) {
     if (error instanceof Error) {
       const formattedError: FormattedError = {
@@ -24,8 +27,79 @@ const registerUserAccount = async (request: Request, response: Response) => {
         statusCode: 401,
       };
       console.error(error.message);
-      response.status(500).json(formattedError);
+      response.status(500).json({
+        success: false,
+        formattedError,
+      });
     }
+  }
+};
+
+const verifyEmail = async (request: Request, response: Response) => {
+  const { verificationToken } = request.query;
+
+  if (!verificationToken) {
+    response.status(400).json({
+      success: false,
+      message: 'Verification token is required',
+    });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(verificationToken as string, process.env.VERIFY_TOKEN_SECRET!) as {
+      userId: number;
+    };
+
+    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: ERRORS.USER_NOT_FOUND,
+      });
+      return;
+    }
+
+    if (user!.email_verified) {
+      response.status(400).json({
+        success: false,
+        message: 'Email already verified',
+      });
+      return;
+    }
+
+    await authenticationDB.updateUserInDatabase(user!.id, {
+      email_verified: true,
+    });
+
+    response.status(200).json({
+      success: true,
+      message: 'Email verified successfully',
+    });
+    return;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.EXPIRED_VERIFICATION_TOKEN,
+      });
+      return;
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_VERIFICATION_TOKEN,
+      });
+      return;
+    }
+
+    console.error(error);
+    response.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+    return;
   }
 };
 
@@ -36,11 +110,21 @@ const loginUserAccount = async (request: Request, response: Response) => {
     const token = await authenticationMethods.loginUserAccount(email, password);
     response.cookie('token', token.accessToken, { httpOnly: true });
     response.cookie('refreshToken', token.refreshToken, { httpOnly: true });
-    response.status(200).json({ message: 'User logged in successfully', email, password, token });
+    response.status(200).json({
+      success: true,
+      message: 'User logged in successfully',
+      email,
+      password,
+      token,
+    });
+    return;
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message);
-      response.status(500).json({ error: error.message });
+      response.status(500).json({
+        success: false,
+        error: error.message,
+      });
     }
   }
 };
@@ -49,52 +133,90 @@ const refreshAccessToken = async (request: Request, response: Response) => {
   const cookies = request.cookies;
 
   if (!cookies?.refreshToken) {
-    response.status(401);
+    response.status(401).json({
+      success: false,
+      message: ERRORS.REFRESH_TOKEN_NOT_FOUND,
+    });
+    return;
   }
 
   const refreshToken = cookies.refreshToken;
-  console.log(refreshToken);
 
   try {
     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_TOKEN!) as {
       userId: number;
     };
 
-    const isTokenValid = await authenticationMethods.verifyRefreshToken(
+    const storedToken = await authenticationDB.getRefreshTokenFromDatabase(
       decoded.userId,
       refreshToken,
     );
-    if (!isTokenValid) {
-      response.status(403);
+
+    if (!storedToken) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.REFRESH_TOKEN_NOT_FOUND,
+      });
+      return;
     }
 
-    const accessToken = jwt.sign({ userId: decoded.userId }, process.env.ACCESS_TOKEN_SECRET!, {
-      expiresIn: '30s',
-    });
+    if (storedToken !== refreshToken) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_REFRESH_TOKEN,
+      });
+      return;
+    }
+
+    const accessToken = generateToken(decoded.userId, process.env.ACCESS_TOKEN_SECRET!, '30s');
 
     response.cookie('token', accessToken, { httpOnly: true });
-    response.status(200).json({ message: 'Access token refreshed successfully', accessToken });
+    response.status(200).json({
+      success: true,
+      message: 'Access token refreshed successfully',
+      accessToken,
+    });
+    return;
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.EXPIRED_REFRESH_TOKEN,
+      });
+      return;
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_REFRESH_TOKEN,
+      });
+      return;
+    }
+
     console.error('Error verifying token:', error);
-    response.status(401).json({ error: 'Unauthorized' });
+    response.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+    return;
   }
 };
 
 const logoutUserAccount = async (request: Request, response: Response) => {
   try {
-    const { refreshToken } = request.cookies;
-
-    if (refreshToken) {
-      await authenticationDB.removeRefreshTokenFromDatabase(refreshToken);
-    }
-
     response.clearCookie('token');
     response.clearCookie('refreshToken');
-    response.status(200).json({ message: 'User logged out successfully' });
+    response.status(200).json({
+      success: true,
+      message: 'User logged out successfully',
+    });
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message);
-      response.status(500).json({ error: error.message });
+      response.status(500).json({
+        success: false,
+        error: error.message,
+      });
     }
   }
 };
@@ -209,6 +331,7 @@ const resetPassword = async (request: Request, response: Response) => {
 
 export default {
   registerUserAccount,
+  verifyEmail,
   loginUserAccount,
   refreshAccessToken,
   logoutUserAccount,
