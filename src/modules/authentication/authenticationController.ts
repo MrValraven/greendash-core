@@ -245,7 +245,7 @@ const requestPasswordReset = async (request: Request, response: Response) => {
 
     response.status(200).json({
       success: true,
-      message: 'Password reset email send successfully',
+      message: 'Password reset email sent successfully',
     });
   } catch (error) {
     console.error('Password reset request error:', error);
