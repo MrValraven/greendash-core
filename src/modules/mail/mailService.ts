@@ -1,6 +1,6 @@
 import { mailtrapClient, sender } from './mail.config';
 
-export const sendPasswordChangeNotification = async (email: string) => {
+const sendPasswordChangeNotification = async (email: string) => {
   const recipient = [{ email }];
 
   try {
@@ -26,7 +26,7 @@ export const sendPasswordChangeNotification = async (email: string) => {
   }
 };
 
-export const sendEmailChangeNotification = async (email: string, newEmail: string) => {
+const sendEmailChangeNotification = async (email: string, newEmail: string) => {
   const recipient = [{ email }];
 
   try {
@@ -52,7 +52,7 @@ export const sendEmailChangeNotification = async (email: string, newEmail: strin
   }
 };
 
-export const sendEmailAndPasswordChangeNotification = async (email: string, newEmail: string) => {
+const sendEmailAndPasswordChangeNotification = async (email: string, newEmail: string) => {
   const recipient = [{ email }];
 
   try {
@@ -77,4 +77,10 @@ export const sendEmailAndPasswordChangeNotification = async (email: string, newE
     console.error('Failed to send email and password change notification:', error);
     throw new Error('Failed to send email and password change notification.');
   }
+};
+
+export default {
+  sendEmailAndPasswordChangeNotification,
+  sendEmailChangeNotification,
+  sendPasswordChangeNotification,
 };

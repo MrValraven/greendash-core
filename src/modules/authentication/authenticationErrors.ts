@@ -1,6 +1,6 @@
 export const ERRORS = {
-  INVALID_ACCESS_TOKEN: 'Invalid Access token',
-  EXPIRED_ACCESS_TOKEN: 'Access token has expired',
+  INVALID_TOKEN: 'Invalid Access token',
+  EXPIRED_TOKEN: 'Access token has expired',
   ACCESS_TOKEN_NOT_FOUND: 'Access token not found',
   REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found',
   INVALID_CREDENTIALS: 'Invalid credentials',

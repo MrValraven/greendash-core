@@ -1,14 +1,10 @@
-import jwt, { decode } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { ERRORS } from './authenticationErrors';
-import { hashPassword, validatePassword } from './authentication.utils';
-import {
-  sendEmailAndPasswordChangeNotification,
-  sendEmailChangeNotification,
-  sendPasswordChangeNotification,
-} from '../mail/mailService';
+import { validatePassword, verifyTokenAndGetUser } from './authentication.utils';
 import authenticationMethods from './authenticationMethods';
 import authenticationDB from './authenticationDB';
+import { EditUserRequest } from './authentication.types';
 
 interface FormattedError extends Error {
   statusCode?: number;
@@ -50,29 +46,25 @@ const loginUserAccount = async (request: Request, response: Response) => {
 };
 
 const refreshAccessToken = async (request: Request, response: Response) => {
-  const cookies = request.cookies;
+  const { refreshToken } = request.cookies;
 
-  if (!cookies?.refreshToken) {
-    response.status(401);
+  if (!refreshToken) {
+    response.status(401).json({
+      success: false,
+      message: ERRORS.REFRESH_TOKEN_NOT_FOUND,
+    });
+    return;
   }
 
-  const refreshToken = cookies.refreshToken;
-  console.log(refreshToken);
-
   try {
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_TOKEN!) as {
-      userId: number;
-    };
+    const user = await verifyTokenAndGetUser(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
 
-    const isTokenValid = await authenticationMethods.verifyRefreshToken(
-      decoded.userId,
-      refreshToken,
-    );
+    const isTokenValid = await authenticationMethods.verifyRefreshToken(user.id, refreshToken);
     if (!isTokenValid) {
       response.status(403);
     }
 
-    const accessToken = jwt.sign({ userId: decoded.userId }, process.env.ACCESS_TOKEN_SECRET!, {
+    const accessToken = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET!, {
       expiresIn: '30s',
     });
 
@@ -104,10 +96,10 @@ const logoutUserAccount = async (request: Request, response: Response) => {
 };
 
 const editUserAccount = async (request: Request, response: Response) => {
-  const { email, password, currentPassword } = request.body;
-  const cookies = request.cookies;
+  const { email, password, currentPassword } = request.body as EditUserRequest;
+  const { token } = request.cookies;
 
-  if (!cookies?.token) {
+  if (!token) {
     response.status(401).json({
       success: false,
       message: ERRORS.ACCESS_TOKEN_NOT_FOUND,
@@ -115,22 +107,8 @@ const editUserAccount = async (request: Request, response: Response) => {
     return;
   }
 
-  const token = cookies.token;
-
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) as {
-      userId: number;
-    };
-
-    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
-
-    if (!user) {
-      response.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-      return;
-    }
+    const user = await verifyTokenAndGetUser(token, process.env.ACCESS_TOKEN_SECRET!);
 
     const isPasswordValid = await validatePassword(currentPassword, user.hashed_password);
 
@@ -142,32 +120,12 @@ const editUserAccount = async (request: Request, response: Response) => {
       return;
     }
 
-    const updates: Partial<{ email: string; hashed_password: string }> = {};
-    let emailChanged = false;
-    let passwordChanged = false;
-
-    if (email) {
-      if (email === user.email) {
-        return response.status(400).json({
-          success: false,
-          message: 'The new email cannot be the same as the current email',
-        });
-      }
-      updates.email = email;
-      emailChanged = true;
-    }
-
-    if (password) {
-      const isSamePassword = await validatePassword(password, user.hashed_password);
-      if (isSamePassword) {
-        return response.status(400).json({
-          success: false,
-          message: 'The new password cannot be the same as the current password',
-        });
-      }
-      updates.hashed_password = await hashPassword(password);
-      passwordChanged = true;
-    }
+    const { updates, emailChanged, passwordChanged } =
+      await authenticationMethods.validateAndBuildUpdates(user, {
+        email,
+        password,
+        currentPassword,
+      });
 
     if (Object.keys(updates).length === 0) {
       response.status(400).json({
@@ -187,13 +145,12 @@ const editUserAccount = async (request: Request, response: Response) => {
       return;
     }
 
-    if (emailChanged && passwordChanged) {
-      await sendEmailAndPasswordChangeNotification(user.email, email!);
-    } else if (emailChanged) {
-      await sendEmailChangeNotification(user.email, email!);
-    } else if (passwordChanged) {
-      await sendPasswordChangeNotification(user.email);
-    }
+    await authenticationMethods.sendUpdateNotifications(
+      user.email,
+      email,
+      emailChanged,
+      passwordChanged,
+    );
 
     response.status(200).json({
       success: true,
@@ -201,22 +158,6 @@ const editUserAccount = async (request: Request, response: Response) => {
       user: updatedUser,
     });
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      response.status(401).json({
-        success: false,
-        message: ERRORS.EXPIRED_ACCESS_TOKEN,
-      });
-      return;
-    }
-
-    if (error instanceof jwt.JsonWebTokenError) {
-      response.status(401).json({
-        success: false,
-        message: ERRORS.INVALID_ACCESS_TOKEN,
-      });
-      return;
-    }
-
     console.error('Error updating user account:', error);
     response.status(500).json({
       success: false,

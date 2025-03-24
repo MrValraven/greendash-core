@@ -6,6 +6,12 @@ export interface User {
   role: 'user' | 'admin' | 'organization';
 }
 
+export interface EditUserRequest {
+  email?: string;
+  password?: string;
+  currentPassword: string;
+}
+
 export interface RefreshToken {
   id: number;
   user_id: number;
