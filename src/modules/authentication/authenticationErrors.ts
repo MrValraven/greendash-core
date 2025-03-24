@@ -1,4 +1,6 @@
 export const ERRORS = {
+  INVALID_PASSWORD_RESET_TOKEN: 'Invalid password reset token',
+  EXPIRED_PASSWORD_RESET_TOKEN: 'Password reset token has expired',
   INVALID_VERIFICATION_TOKEN: 'Invalid verification token',
   EXPIRED_VERIFICATION_TOKEN: 'Verification token has expired',
   REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found',

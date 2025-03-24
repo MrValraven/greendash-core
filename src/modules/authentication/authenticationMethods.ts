@@ -6,7 +6,6 @@ import authenticationDB from './authenticationDB';
 
 const registerUserAccount = async (email: string, password: string) => {
   const userInDatabase = await authenticationDB.getUserFromDatabase('email', email);
-
   if (userInDatabase) {
     throw new Error(ERRORS.EMAIL_IN_USE);
   }
