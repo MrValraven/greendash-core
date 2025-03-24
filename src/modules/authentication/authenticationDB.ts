@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { db } from '../../db';
 import { usersTable } from '../../db/schemas/users.sql';
-import { User } from './authentication.types';
+import { User, UserField, UserFieldValue } from './authentication.types';
 
 const createUserInDatabase = async (email: string, hashedPassword: string): Promise<User> => {
   const user = await db
@@ -22,8 +22,8 @@ const createUserInDatabase = async (email: string, hashedPassword: string): Prom
 };
 
 const getUserFromDatabase = async (
-  valueType: 'id' | 'email',
-  value: number | string,
+  field: UserField,
+  value: UserFieldValue,
 ): Promise<User | undefined> => {
   const userFromDB = await db
     .select({
@@ -34,7 +34,7 @@ const getUserFromDatabase = async (
       role: usersTable.role,
     })
     .from(usersTable)
-    .where(eq(usersTable[valueType], value))
+    .where(eq(usersTable[field], value))
     .limit(1);
 
   return userFromDB[0];
@@ -43,7 +43,7 @@ const getUserFromDatabase = async (
 const updateUserInDatabase = async (
   userId: number,
   updates: Partial<Omit<User, 'id'>>,
-): Promise<User | undefined> => {
+): Promise<Omit<User, 'hashed_password'> | undefined> => {
   if (Object.keys(updates).length === 0) {
     throw new Error('No updates provided.');
   }
@@ -55,7 +55,6 @@ const updateUserInDatabase = async (
     .returning({
       id: usersTable.id,
       email: usersTable.email,
-      hashed_password: usersTable.hashed_password,
       email_verified: usersTable.email_verified,
       role: usersTable.role,
     });

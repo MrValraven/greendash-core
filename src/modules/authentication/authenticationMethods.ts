@@ -29,7 +29,7 @@ const loginUserAccount = async (email: string, password: string) => {
     throw new Error(ERRORS.USER_NOT_FOUND);
   }
 
-  const isPasswordMatch = await validatePassword(password, user.hashed_password);
+  const isPasswordMatch = await validatePassword(password, user.hashed_password!);
 
   if (!isPasswordMatch) {
     throw new Error(ERRORS.INVALID_CREDENTIALS);

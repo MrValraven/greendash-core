@@ -5,3 +5,6 @@ export interface User {
   email: string;
   role: 'user' | 'admin' | 'organization';
 }
+
+export type UserField = 'id' | 'email';
+export type UserFieldValue = string | number;
