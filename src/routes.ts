@@ -26,6 +26,12 @@ router.get('/auth/refresh', authenticationController.refreshAccessToken);
 
 router.get('/auth/logout', verifyToken, authenticationController.logoutUserAccount);
 
+router.post('/auth/password-reset-request', authenticationController.requestPasswordReset);
+
+router.post('/auth/password-reset', authenticationController.resetPassword);
+
+router.get('/auth/verify-email', authenticationController.verifyEmail);
+
 router.put(
   '/auth/user',
   validateBodyData(editUserSchema),

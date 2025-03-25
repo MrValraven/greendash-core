@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const mailtrapClient = new MailtrapClient({
+export const mailClient = new MailtrapClient({
   token: process.env.MAIL_SERVICE_TOKEN!,
 });
 

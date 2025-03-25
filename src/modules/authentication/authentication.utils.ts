@@ -1,8 +1,5 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from './authentication.types';
-import authenticationDB from './authenticationDB';
-import { ERRORS } from './authenticationErrors';
 
 const hashPassword = async (password: string) => {
   const SALT_ROUNDS = 10;
@@ -11,6 +8,14 @@ const hashPassword = async (password: string) => {
 
 const validatePassword = async (password: string, hashedPassword: string) => {
   return await bcrypt.compare(password, hashedPassword);
+};
+
+const generateToken = (
+  userId: number,
+  secret: string,
+  expiresIn: jwt.SignOptions['expiresIn'],
+): string => {
+  return jwt.sign({ userId }, secret!, { expiresIn });
 };
 
 const verifyTokenAndGetUser = async (token: string, tokenSecret: string): Promise<User> => {
@@ -37,4 +42,4 @@ const verifyTokenAndGetUser = async (token: string, tokenSecret: string): Promis
   }
 };
 
-export { hashPassword, validatePassword, verifyTokenAndGetUser };
+export { hashPassword, validatePassword, generateToken, verifyTokenAndGetUser };

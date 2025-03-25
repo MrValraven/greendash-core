@@ -15,7 +15,10 @@ const registerUserAccount = async (request: Request, response: Response) => {
 
   try {
     const user = await authenticationMethods.registerUserAccount(email, password);
-    response.status(201).json(user);
+    response.status(201).json({
+      success: true,
+      user,
+    });
   } catch (error) {
     if (error instanceof Error) {
       const formattedError: FormattedError = {
@@ -24,8 +27,79 @@ const registerUserAccount = async (request: Request, response: Response) => {
         statusCode: 401,
       };
       console.error(error.message);
-      response.status(500).json(formattedError);
+      response.status(500).json({
+        success: false,
+        formattedError,
+      });
     }
+  }
+};
+
+const verifyEmail = async (request: Request, response: Response) => {
+  const { verificationToken } = request.query;
+
+  if (!verificationToken) {
+    response.status(400).json({
+      success: false,
+      message: 'Verification token is required',
+    });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(verificationToken as string, process.env.VERIFY_TOKEN_SECRET!) as {
+      userId: number;
+    };
+
+    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: ERRORS.USER_NOT_FOUND,
+      });
+      return;
+    }
+
+    if (user!.email_verified) {
+      response.status(400).json({
+        success: false,
+        message: 'Email already verified',
+      });
+      return;
+    }
+
+    await authenticationDB.updateUserInDatabase(user!.id, {
+      email_verified: true,
+    });
+
+    response.status(200).json({
+      success: true,
+      message: 'Email verified successfully',
+    });
+    return;
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.EXPIRED_VERIFICATION_TOKEN,
+      });
+      return;
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_VERIFICATION_TOKEN,
+      });
+      return;
+    }
+
+    console.error(error);
+    response.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+    return;
   }
 };
 
@@ -36,11 +110,21 @@ const loginUserAccount = async (request: Request, response: Response) => {
     const token = await authenticationMethods.loginUserAccount(email, password);
     response.cookie('token', token.accessToken, { httpOnly: true });
     response.cookie('refreshToken', token.refreshToken, { httpOnly: true });
-    response.status(200).json({ message: 'User logged in successfully', email, password, token });
+    response.status(200).json({
+      success: true,
+      message: 'User logged in successfully',
+      email,
+      password,
+      token,
+    });
+    return;
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message);
-      response.status(500).json({ error: error.message });
+      response.status(500).json({
+        success: false,
+        error: error.message,
+      });
     }
   }
 };
@@ -69,29 +153,161 @@ const refreshAccessToken = async (request: Request, response: Response) => {
     });
 
     response.cookie('token', accessToken, { httpOnly: true });
-    response.status(200).json({ message: 'Access token refreshed successfully', accessToken });
+    response.status(200).json({
+      success: true,
+      message: 'Access token refreshed successfully',
+      accessToken,
+    });
+    return;
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.EXPIRED_REFRESH_TOKEN,
+      });
+      return;
+    }
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_REFRESH_TOKEN,
+      });
+      return;
+    }
+
     console.error('Error verifying token:', error);
-    response.status(401).json({ error: 'Unauthorized' });
+    response.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+    return;
   }
 };
 
 const logoutUserAccount = async (request: Request, response: Response) => {
   try {
-    const { refreshToken } = request.cookies;
-
-    if (refreshToken) {
-      await authenticationDB.removeRefreshTokenFromDatabase(refreshToken);
-    }
-
     response.clearCookie('token');
     response.clearCookie('refreshToken');
-    response.status(200).json({ message: 'User logged out successfully' });
+    response.status(200).json({
+      success: true,
+      message: 'User logged out successfully',
+    });
   } catch (error) {
     if (error instanceof Error) {
       console.error(error.message);
-      response.status(500).json({ error: error.message });
+      response.status(500).json({
+        success: false,
+        error: error.message,
+      });
     }
+  }
+};
+
+const requestPasswordReset = async (request: Request, response: Response) => {
+  const { email } = request.body;
+
+  try {
+    const user = await authenticationDB.getUserFromDatabase('email', email);
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: ERRORS.USER_NOT_FOUND,
+      });
+      return;
+    }
+
+    const passwordResetToken = generateToken(
+      user.id,
+      process.env.PASSWORD_RESET_TOKEN_SECRET!,
+      '1h',
+    );
+
+    await sendPasswordResetEmail(email, passwordResetToken);
+
+    response.status(200).json({
+      success: true,
+      message: 'Password reset email sent successfully',
+    });
+  } catch (error) {
+    console.error('Password reset request error:', error);
+    response.status(500).json({
+      success: false,
+      message: 'Failed to process password reset request',
+    });
+  }
+};
+
+const resetPassword = async (request: Request, response: Response) => {
+  const { passwordResetToken } = request.query;
+  const { newPassword } = request.body;
+
+  if (!passwordResetToken) {
+    response.status(400).json({
+      success: false,
+      message: 'Password reset token is required',
+    });
+    return;
+  }
+
+  if (!newPassword) {
+    response.status(400).json({
+      success: false,
+      message: 'New Password is required',
+    });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(
+      passwordResetToken as string,
+      process.env.PASSWORD_RESET_TOKEN_SECRET!,
+    ) as {
+      userId: number;
+    };
+
+    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
+
+    if (!user) {
+      response.status(404).json({
+        success: false,
+        message: ERRORS.USER_NOT_FOUND,
+      });
+      return;
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await authenticationDB.updateUserInDatabase(user.id, {
+      hashed_password: hashedPassword,
+    });
+
+    response.status(200).json({
+      success: true,
+      message: 'Password reset successfully',
+    });
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      response.status(400).json({
+        success: false,
+        message: ERRORS.EXPIRED_PASSWORD_RESET_TOKEN,
+      });
+      return;
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+      response.status(401).json({
+        success: false,
+        message: ERRORS.INVALID_PASSWORD_RESET_TOKEN,
+      });
+      return;
+    }
+
+    console.error('Password reset error:', error);
+    response.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+    });
   }
 };
 
@@ -168,8 +384,11 @@ const editUserAccount = async (request: Request, response: Response) => {
 
 export default {
   registerUserAccount,
+  verifyEmail,
   loginUserAccount,
   refreshAccessToken,
   logoutUserAccount,
+  requestPasswordReset,
+  resetPassword,
   editUserAccount,
 };
