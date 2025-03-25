@@ -1,7 +1,14 @@
-import { hashPassword, validatePassword } from './authentication.utils';
-import { sendVerificationEmail } from '../mail/mailService';
+import {
+  hashPassword,
+  validatePassword,
+  generateToken,
+  verifyRefreshToken,
+  getUserFromToken,
+  validateUpdates,
+  buildUpdates,
+  sendUpdateNotifications,
+} from './authentication.utils';
 import { ERRORS } from './authenticationErrors';
-import { generateToken } from './authentication.utils';
 import authenticationDB from './authenticationDB';
 import mailService from '../mail/mailService';
 import { User, EditUserRequest } from './authentication.types';
@@ -18,9 +25,21 @@ const registerUserAccount = async (email: string, password: string) => {
 
   const verificationToken = generateToken(createdUser.id, process.env.VERIFY_TOKEN_SECRET!, '1d');
 
-  await sendVerificationEmail(email, verificationToken);
+  await mailService.sendVerificationEmail(email, verificationToken);
 
   return createdUser;
+};
+
+const verifyUserEmail = async (verificationToken: string) => {
+  const user = await getUserFromToken(verificationToken, process.env.VERIFY_TOKEN_SECRET!);
+
+  if (user.email_verified) {
+    throw new Error(ERRORS.EMAIL_ALREADY_VERIFIED);
+  }
+
+  await authenticationDB.updateUserInDatabase(user.id, {
+    email_verified: true,
+  });
 };
 
 const loginUserAccount = async (email: string, password: string) => {
@@ -48,59 +67,72 @@ const loginUserAccount = async (email: string, password: string) => {
   return { accessToken, refreshToken };
 };
 
-const verifyRefreshToken = async (userId: number, refreshToken: string): Promise<boolean> => {
-  const tokenRecord = await authenticationDB.getRefreshTokenFromDatabase(userId, refreshToken);
-  return tokenRecord ? true : false;
+const refreshUserAccessToken = async (refreshToken: string) => {
+  const user = await getUserFromToken(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
+
+  const isTokenValid = await verifyRefreshToken(user.id, refreshToken);
+  if (!isTokenValid) {
+    throw new Error(ERRORS.INVALID_REFRESH_TOKEN);
+  }
+
+  const accessToken = generateToken(user.id, process.env.ACCESS_TOKEN_SECRET!, '30s');
+
+  return accessToken;
 };
 
-const validateAndBuildUpdates = async (
-  user: User,
-  updates: EditUserRequest,
-): Promise<{ updates: Partial<User>; emailChanged: boolean; passwordChanged: boolean }> => {
-  const result = {
-    updates: {} as Partial<User>,
-    emailChanged: false,
-    passwordChanged: false,
-  };
+const requestUserPasswordReset = async (email: string) => {
+  const user = await authenticationDB.getUserFromDatabase('email', email);
 
-  if (updates.email) {
-    if (updates.email === user.email) {
-      throw new Error('This new email cannot be the same as the current email');
-    }
-    result.updates.email = updates.email;
-    result.emailChanged = true;
+  if (!user) {
+    throw new Error(ERRORS.USER_NOT_FOUND);
   }
 
-  if (updates.password) {
-    const isSamePassword = await validatePassword(updates.password, user.hashed_password);
-    if (isSamePassword) {
-      throw new Error('The new password cannot be the same as the current password');
-    }
-    result.updates.hashed_password = await hashPassword(updates.password);
-    result.passwordChanged = true;
-  }
-  return result;
+  const passwordResetToken = generateToken(user.id, process.env.PASSWORD_RESET_TOKEN_SECRET!, '1h');
+
+  await mailService.sendPasswordResetEmail(email, passwordResetToken);
 };
 
-const sendUpdateNotifications = async (
-  email: string,
-  newEmail: string | undefined,
-  emailChanged: boolean,
-  passwordChanged: boolean,
-) => {
-  if (emailChanged && passwordChanged) {
-    await mailService.sendEmailAndPasswordChangeNotification(email, newEmail!);
-  } else if (emailChanged) {
-    await mailService.sendEmailChangeNotification(email, newEmail!);
-  } else if (passwordChanged) {
-    await mailService.sendPasswordChangeNotification(email);
+const resetUserPassword = async (passwordResetToken: string, newPassword: string) => {
+  const user = await getUserFromToken(passwordResetToken, process.env.PASSWORD_RESET_TOKEN_SECRET!);
+
+  const hashedPassword = await hashPassword(newPassword);
+
+  await authenticationDB.updateUserInDatabase(user.id, {
+    hashed_password: hashedPassword,
+  });
+};
+
+const updateUserAccount = async (user: User, updates: EditUserRequest) => {
+  const isPasswordValid = await validatePassword(updates.currentPassword, user.hashed_password);
+
+  if (!isPasswordValid) {
+    throw new Error(ERRORS.INVALID_CURRENT_PASSWORD);
   }
+
+  const validationResult = await validateUpdates(user, updates);
+  if (!validationResult.isValid) {
+    throw new Error(validationResult.errorMessage);
+  }
+
+  const { updates: validatedUpdates, emailChanged, passwordChanged } = await buildUpdates(updates);
+
+  const updatedUser = await authenticationDB.updateUserInDatabase(user.id, validatedUpdates);
+
+  if (!updatedUser) {
+    throw new Error(ERRORS.USER_NOT_FOUND);
+  }
+
+  await sendUpdateNotifications(user.email, updates.email, emailChanged, passwordChanged);
+
+  return { updatedUser, emailChanged, passwordChanged };
 };
 
 export default {
   registerUserAccount,
+  verifyUserEmail,
   loginUserAccount,
-  verifyRefreshToken,
-  validateAndBuildUpdates,
-  sendUpdateNotifications,
+  refreshUserAccessToken,
+  requestUserPasswordReset,
+  resetUserPassword,
+  updateUserAccount,
 };

@@ -1,10 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { ERRORS } from './authenticationErrors';
-import { validatePassword, verifyTokenAndGetUser } from './authentication.utils';
+import { getUserFromToken } from './authentication.utils';
 import authenticationMethods from './authenticationMethods';
-import authenticationDB from './authenticationDB';
-import { EditUserRequest } from './authentication.types';
 
 interface FormattedError extends Error {
   statusCode?: number;
@@ -47,31 +45,7 @@ const verifyEmail = async (request: Request, response: Response) => {
   }
 
   try {
-    const decoded = jwt.verify(verificationToken as string, process.env.VERIFY_TOKEN_SECRET!) as {
-      userId: number;
-    };
-
-    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
-
-    if (!user) {
-      response.status(404).json({
-        success: false,
-        message: ERRORS.USER_NOT_FOUND,
-      });
-      return;
-    }
-
-    if (user!.email_verified) {
-      response.status(400).json({
-        success: false,
-        message: 'Email already verified',
-      });
-      return;
-    }
-
-    await authenticationDB.updateUserInDatabase(user!.id, {
-      email_verified: true,
-    });
+    await authenticationMethods.verifyUserEmail(verificationToken as string);
 
     response.status(200).json({
       success: true,
@@ -79,21 +53,6 @@ const verifyEmail = async (request: Request, response: Response) => {
     });
     return;
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      response.status(401).json({
-        success: false,
-        message: ERRORS.EXPIRED_VERIFICATION_TOKEN,
-      });
-      return;
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      response.status(401).json({
-        success: false,
-        message: ERRORS.INVALID_VERIFICATION_TOKEN,
-      });
-      return;
-    }
-
     console.error(error);
     response.status(500).json({
       success: false,
@@ -141,17 +100,7 @@ const refreshAccessToken = async (request: Request, response: Response) => {
   }
 
   try {
-    const user = await verifyTokenAndGetUser(refreshToken, process.env.REFRESH_TOKEN_SECRET!);
-
-    const isTokenValid = await authenticationMethods.verifyRefreshToken(user.id, refreshToken);
-    if (!isTokenValid) {
-      response.status(403);
-    }
-
-    const accessToken = jwt.sign({ userId: user.id }, process.env.ACCESS_TOKEN_SECRET!, {
-      expiresIn: '30s',
-    });
-
+    const accessToken = await authenticationMethods.refreshUserAccessToken(refreshToken);
     response.cookie('token', accessToken, { httpOnly: true });
     response.status(200).json({
       success: true,
@@ -160,21 +109,6 @@ const refreshAccessToken = async (request: Request, response: Response) => {
     });
     return;
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      response.status(401).json({
-        success: false,
-        message: ERRORS.EXPIRED_REFRESH_TOKEN,
-      });
-      return;
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      response.status(401).json({
-        success: false,
-        message: ERRORS.INVALID_REFRESH_TOKEN,
-      });
-      return;
-    }
-
     console.error('Error verifying token:', error);
     response.status(500).json({
       success: false,
@@ -207,23 +141,7 @@ const requestPasswordReset = async (request: Request, response: Response) => {
   const { email } = request.body;
 
   try {
-    const user = await authenticationDB.getUserFromDatabase('email', email);
-
-    if (!user) {
-      response.status(404).json({
-        success: false,
-        message: ERRORS.USER_NOT_FOUND,
-      });
-      return;
-    }
-
-    const passwordResetToken = generateToken(
-      user.id,
-      process.env.PASSWORD_RESET_TOKEN_SECRET!,
-      '1h',
-    );
-
-    await sendPasswordResetEmail(email, passwordResetToken);
+    await authenticationMethods.requestUserPasswordReset(email);
 
     response.status(200).json({
       success: true,
@@ -250,59 +168,14 @@ const resetPassword = async (request: Request, response: Response) => {
     return;
   }
 
-  if (!newPassword) {
-    response.status(400).json({
-      success: false,
-      message: 'New Password is required',
-    });
-    return;
-  }
-
   try {
-    const decoded = jwt.verify(
-      passwordResetToken as string,
-      process.env.PASSWORD_RESET_TOKEN_SECRET!,
-    ) as {
-      userId: number;
-    };
-
-    const user = await authenticationDB.getUserFromDatabase('id', decoded.userId);
-
-    if (!user) {
-      response.status(404).json({
-        success: false,
-        message: ERRORS.USER_NOT_FOUND,
-      });
-      return;
-    }
-
-    const hashedPassword = await hashPassword(newPassword);
-
-    await authenticationDB.updateUserInDatabase(user.id, {
-      hashed_password: hashedPassword,
-    });
+    await authenticationMethods.resetUserPassword(passwordResetToken as string, newPassword);
 
     response.status(200).json({
       success: true,
       message: 'Password reset successfully',
     });
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      response.status(400).json({
-        success: false,
-        message: ERRORS.EXPIRED_PASSWORD_RESET_TOKEN,
-      });
-      return;
-    }
-
-    if (error instanceof jwt.JsonWebTokenError) {
-      response.status(401).json({
-        success: false,
-        message: ERRORS.INVALID_PASSWORD_RESET_TOKEN,
-      });
-      return;
-    }
-
     console.error('Password reset error:', error);
     response.status(500).json({
       success: false,
@@ -312,7 +185,7 @@ const resetPassword = async (request: Request, response: Response) => {
 };
 
 const editUserAccount = async (request: Request, response: Response) => {
-  const { email, password, currentPassword } = request.body as EditUserRequest;
+  const { email, password, currentPassword } = request.body;
   const { token } = request.cookies;
 
   if (!token) {
@@ -324,49 +197,13 @@ const editUserAccount = async (request: Request, response: Response) => {
   }
 
   try {
-    const user = await verifyTokenAndGetUser(token, process.env.ACCESS_TOKEN_SECRET!);
+    const user = await getUserFromToken(token, process.env.ACCESS_TOKEN_SECRET!);
 
-    const isPasswordValid = await validatePassword(currentPassword, user.hashed_password);
-
-    if (!isPasswordValid) {
-      response.status(401).json({
-        success: false,
-        message: 'Invalid current password',
-      });
-      return;
-    }
-
-    const { updates, emailChanged, passwordChanged } =
-      await authenticationMethods.validateAndBuildUpdates(user, {
-        email,
-        password,
-        currentPassword,
-      });
-
-    if (Object.keys(updates).length === 0) {
-      response.status(400).json({
-        success: false,
-        message: 'No fields provided to update',
-      });
-      return;
-    }
-
-    const updatedUser = await authenticationDB.updateUserInDatabase(user.id, updates);
-
-    if (!updatedUser) {
-      response.status(404).json({
-        success: false,
-        message: 'User not found',
-      });
-      return;
-    }
-
-    await authenticationMethods.sendUpdateNotifications(
-      user.email,
+    const { updatedUser } = await authenticationMethods.updateUserAccount(user, {
       email,
-      emailChanged,
-      passwordChanged,
-    );
+      password,
+      currentPassword,
+    });
 
     response.status(200).json({
       success: true,

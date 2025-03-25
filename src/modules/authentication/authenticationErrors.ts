@@ -15,6 +15,10 @@ export const ERRORS = {
   REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found',
 
   INVALID_CREDENTIALS: 'Invalid credentials',
+  INVALID_CURRENT_PASSWORD: 'Invalid current password',
+
   EMAIL_IN_USE: 'Email is already in use',
+  EMAIL_ALREADY_VERIFIED: 'Email already verified',
+
   USER_NOT_FOUND: 'User not found',
 };

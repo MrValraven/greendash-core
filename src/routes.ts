@@ -5,6 +5,7 @@ import { verifyToken } from './middlewares/authMiddleware';
 import {
   registerSchema,
   loginSchema,
+  resetPasswordSchema,
   editUserSchema,
 } from './modules/authentication/authentication.schemas';
 
@@ -28,7 +29,11 @@ router.get('/auth/logout', verifyToken, authenticationController.logoutUserAccou
 
 router.post('/auth/password-reset-request', authenticationController.requestPasswordReset);
 
-router.post('/auth/password-reset', authenticationController.resetPassword);
+router.post(
+  '/auth/password-reset',
+  validateBodyData(resetPasswordSchema),
+  authenticationController.resetPassword,
+);
 
 router.get('/auth/verify-email', authenticationController.verifyEmail);
 
