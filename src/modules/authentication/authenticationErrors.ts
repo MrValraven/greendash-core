@@ -15,10 +15,14 @@ export const ERRORS = {
   REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found',
 
   INVALID_CREDENTIALS: 'Invalid credentials',
+  INVALID_UPDATE_FIELD: 'Invalid update field provided',
   INVALID_CURRENT_PASSWORD: 'Invalid current password',
 
   EMAIL_IN_USE: 'Email is already in use',
   EMAIL_ALREADY_VERIFIED: 'Email already verified',
+
+  SAME_EMAIL: 'New email cannot be the same as the current email',
+  SAME_PASSWORD: 'New password cannot be the same as the current password',
 
   USER_NOT_FOUND: 'User not found',
 };

@@ -4,14 +4,13 @@ import {
   generateToken,
   verifyRefreshToken,
   getUserFromToken,
-  validateUpdates,
-  buildUpdates,
-  sendUpdateNotifications,
+  validateUserUpdate,
+  buildUserUpdate,
 } from './authentication.utils';
 import { ERRORS } from './authenticationErrors';
 import authenticationDB from './authenticationDB';
 import mailService from '../mail/mailService';
-import { User, EditUserRequest } from './authentication.types';
+import { User, UserUpdate } from './authentication.types';
 
 const registerUserAccount = async (email: string, password: string) => {
   const userInDatabase = await authenticationDB.getUserFromDatabase('email', email);
@@ -102,29 +101,28 @@ const resetUserPassword = async (passwordResetToken: string, newPassword: string
   });
 };
 
-const updateUserAccount = async (user: User, updates: EditUserRequest) => {
-  const isPasswordValid = await validatePassword(updates.currentPassword, user.hashed_password);
-
-  if (!isPasswordValid) {
-    throw new Error(ERRORS.INVALID_CURRENT_PASSWORD);
-  }
-
-  const validationResult = await validateUpdates(user, updates);
+const updateUserAccount = async (user: User, update: UserUpdate) => {
+  const validationResult = await validateUserUpdate(user, update);
   if (!validationResult.isValid) {
-    throw new Error(validationResult.errorMessage);
+    throw new Error(validationResult.error);
   }
 
-  const { updates: validatedUpdates, emailChanged, passwordChanged } = await buildUpdates(updates);
+  const { updates, field } = await buildUserUpdate(update);
 
-  const updatedUser = await authenticationDB.updateUserInDatabase(user.id, validatedUpdates);
-
+  const updatedUser = await authenticationDB.updateUserInDatabase(user.id, updates);
   if (!updatedUser) {
     throw new Error(ERRORS.USER_NOT_FOUND);
   }
 
-  await sendUpdateNotifications(user.email, updates.email, emailChanged, passwordChanged);
+  if (field === 'email') {
+    await mailService.sendEmailChangeNotification(user.email, update.value);
+  }
 
-  return { updatedUser, emailChanged, passwordChanged };
+  if (field === 'password') {
+    await mailService.sendPasswordChangeNotification(user.email);
+  }
+
+  return { updatedUser };
 };
 
 export default {

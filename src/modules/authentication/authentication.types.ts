@@ -6,9 +6,10 @@ export interface User {
   role: 'user' | 'admin' | 'organization';
 }
 
-export interface EditUserRequest {
-  email?: string;
-  password?: string;
+export type UpdatableUserField = 'email' | 'password';
+export interface UserUpdate {
+  field: UpdatableUserField;
+  value: string;
   currentPassword: string;
 }
 

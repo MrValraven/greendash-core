@@ -2,8 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import authenticationDB from './authenticationDB';
 import { ERRORS } from './authenticationErrors';
-import { User, EditUserRequest } from './authentication.types';
-import mailService from '../mail/mailService';
+import { User, UserUpdate } from './authentication.types';
 
 const hashPassword = async (password: string) => {
   const SALT_ROUNDS = 10;
@@ -55,59 +54,52 @@ const getUserFromToken = async (token: string, tokenSecret: string) => {
   return user;
 };
 
-const validateUpdates = async (user: User, updates: EditUserRequest) => {
-  if (updates.email && updates.email === user.email) {
-    return {
-      isValid: false,
-      errorMessage: 'This new email cannot be the same as the current email',
-    };
+const validateUserUpdate = async (user: User, update: UserUpdate) => {
+  const isPasswordValid = await validatePassword(update.currentPassword, user.hashed_password);
+  if (!isPasswordValid) {
+    return { isValid: false, error: ERRORS.INVALID_CURRENT_PASSWORD };
   }
 
-  if (updates.password) {
-    const isSamePassword = await validatePassword(updates.password, user.hashed_password);
-    if (isSamePassword) {
-      return {
-        isValid: false,
-        errorMessage: 'The new password cannot be the same as the current password',
-      };
-    }
+  switch (update.field) {
+    case 'email':
+      if (update.value === user.email) {
+        return { isValid: false, error: ERRORS.SAME_EMAIL };
+      }
+      const existingUser = await authenticationDB.getUserFromDatabase('email', update.value);
+      if (existingUser) {
+        return { isValid: false, error: ERRORS.EMAIL_IN_USE };
+      }
+      break;
+
+    case 'password':
+      const isSamePassword = await validatePassword(update.value, user.hashed_password);
+      if (isSamePassword) {
+        return { isValid: false, error: ERRORS.SAME_PASSWORD };
+      }
+      break;
   }
 
   return { isValid: true };
 };
 
-const buildUpdates = async (updates: EditUserRequest) => {
-  const result = {
-    updates: {} as Partial<User>,
-    emailChanged: false,
-    passwordChanged: false,
-  };
-
-  if (updates.email) {
-    result.updates.email = updates.email;
-    result.emailChanged = true;
-  }
-
-  if (updates.password) {
-    result.updates.hashed_password = await hashPassword(updates.password);
-    result.passwordChanged = true;
-  }
-
-  return result;
-};
-
-const sendUpdateNotifications = async (
-  email: string,
-  newEmail: string | undefined,
-  emailChanged: boolean,
-  passwordChanged: boolean,
-) => {
-  if (emailChanged && passwordChanged) {
-    await mailService.sendEmailAndPasswordChangeNotification(email, newEmail!);
-  } else if (emailChanged) {
-    await mailService.sendEmailChangeNotification(email, newEmail!);
-  } else if (passwordChanged) {
-    await mailService.sendPasswordChangeNotification(email);
+const buildUserUpdate = async (update: UserUpdate) => {
+  switch (update.field) {
+    case 'password':
+      return {
+        updates: {
+          hashed_password: await hashPassword(update.value),
+        },
+        field: 'password',
+      };
+    case 'email':
+      return {
+        updates: {
+          email: update.value,
+        },
+        field: 'email',
+      };
+    default:
+      throw new Error(ERRORS.INVALID_UPDATE_FIELD);
   }
 };
 
@@ -118,7 +110,6 @@ export {
   verifyToken,
   verifyRefreshToken,
   getUserFromToken,
-  validateUpdates,
-  buildUpdates,
-  sendUpdateNotifications,
+  validateUserUpdate,
+  buildUserUpdate,
 };

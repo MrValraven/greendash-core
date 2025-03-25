@@ -1,4 +1,3 @@
-import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import { ERRORS } from './authenticationErrors';
 import { getUserFromToken } from './authentication.utils';
@@ -185,7 +184,7 @@ const resetPassword = async (request: Request, response: Response) => {
 };
 
 const editUserAccount = async (request: Request, response: Response) => {
-  const { email, password, currentPassword } = request.body;
+  const { field, value, currentPassword } = request.body;
   const { token } = request.cookies;
 
   if (!token) {
@@ -199,16 +198,15 @@ const editUserAccount = async (request: Request, response: Response) => {
   try {
     const user = await getUserFromToken(token, process.env.ACCESS_TOKEN_SECRET!);
 
-    const { updatedUser } = await authenticationMethods.updateUserAccount(user, {
-      email,
-      password,
+    await authenticationMethods.updateUserAccount(user, {
+      field,
+      value,
       currentPassword,
     });
 
     response.status(200).json({
       success: true,
       message: 'User account updated successfully',
-      user: updatedUser,
     });
   } catch (error) {
     console.error('Error updating user account:', error);

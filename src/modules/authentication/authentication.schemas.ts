@@ -16,13 +16,25 @@ export const resetPasswordSchema = z.object({
 
 export const editUserSchema = z
   .object({
-    email: z.string().email('Invalid email address').optional(),
-    password: z.string().min(8, 'Password must be at least 8 characters long').optional(),
+    field: z.enum(['email', 'password']),
+    value: z.string(),
     currentPassword: z.string().min(8, 'Current password is required'),
   })
-  .refine((data) => data.email || data.password, {
-    message: 'At least one field (email or password) must be provided',
-  });
+  .refine(
+    (data) => {
+      switch (data.field) {
+        case 'email':
+          return z.string().email().safeParse(data.value).success;
+        case 'password':
+          return data.value.length >= 8;
+        default:
+          return false;
+      }
+    },
+    {
+      message: 'Invalid value for selected field',
+    },
+  );
 
 export type RegisterSchema = z.infer<typeof registerSchema>;
 export type LoginSchema = z.infer<typeof loginSchema>;
