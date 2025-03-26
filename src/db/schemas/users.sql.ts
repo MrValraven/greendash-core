@@ -16,7 +16,7 @@ export const usersTable = table('users', {
   // User Information
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar('name', { length: 256 }),
-  email: varchar('email').notNull(),
+  email: varchar('email').notNull().unique(),
   hashed_password: varchar('hashed_password').notNull(),
   account_status: accountStatusEnum().default('pending'),
   email_verified: boolean('email_verified').default(false).notNull(),

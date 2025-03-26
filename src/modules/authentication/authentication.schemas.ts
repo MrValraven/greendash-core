@@ -1,20 +1,23 @@
 import { z } from 'zod';
 
+const emailSchema = z.string().email('Invalid email address');
+const passwordSchema = z.string().min(8, 'Password must be at least 8 characters long');
+
 export const registerSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  email: emailSchema,
+  password: passwordSchema,
 });
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters long'),
+  password: passwordSchema,
 });
 
 export const resetPasswordSchema = z.object({
-  newPassword: z.string().min(8, 'Password must be at least 8 characters long'),
+  newPassword: passwordSchema,
 });
 
-export const editUserSchema = z
+/* export const editUserSchema = z
   .object({
     field: z.enum(['email', 'password']),
     value: z.string(),
@@ -34,6 +37,24 @@ export const editUserSchema = z
     {
       message: 'Invalid value for selected field',
     },
+  ); */
+
+export const editUserSchema = z
+  .object({
+    userFieldName: z.enum(['email', 'password']),
+  })
+  .and(
+    z.discriminatedUnion('userFieldName', [
+      z.object({
+        userFieldName: z.literal('email'),
+        userFieldValue: emailSchema,
+      }),
+      z.object({
+        userFieldName: z.literal('password'),
+        userFieldValue: passwordSchema,
+        currentPassword: passwordSchema,
+      }),
+    ]),
   );
 
 export type RegisterSchema = z.infer<typeof registerSchema>;

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { ERRORS } from './authenticationErrors';
-import { getUserFromToken } from './authentication.utils';
 import authenticationMethods from './authenticationMethods';
+import { EditUserSchema } from './authentication.schemas';
 
 interface FormattedError extends Error {
   statusCode?: number;
@@ -183,7 +183,7 @@ const resetPassword = async (request: Request, response: Response) => {
   }
 };
 
-const editUserAccount = async (request: Request, response: Response) => {
+/* const editUserAccount = async (request: Request, response: Response) => {
   const { field, value, currentPassword } = request.body;
   const { token } = request.cookies;
 
@@ -195,14 +195,34 @@ const editUserAccount = async (request: Request, response: Response) => {
     return;
   }
 
+
   try {
-    const user = await getUserFromToken(token, process.env.ACCESS_TOKEN_SECRET!);
+    /* const user = await getUserFromToken(token, process.env.ACCESS_TOKEN_SECRET!);
 
     await authenticationMethods.updateUserAccount(user, {
       field,
       value,
       currentPassword,
     });
+
+    response.status(200).json({
+      success: true,
+      message: 'User account updated successfully',
+    });
+  } catch (error) {
+    console.error('Error updating user account:', error);
+    response.status(500).json({
+      success: false,
+      message: 'Failed to update user account',
+    });
+  }
+}; */
+
+const editUserAccount = async (request: Request, response: Response) => {
+  const { token } = request.cookies;
+
+  try {
+    await authenticationMethods.updateUserAccount(token, request.body as EditUserSchema);
 
     response.status(200).json({
       success: true,

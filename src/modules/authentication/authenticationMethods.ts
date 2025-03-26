@@ -11,6 +11,7 @@ import { ERRORS } from './authenticationErrors';
 import authenticationDB from './authenticationDB';
 import mailService from '../mail/mailService';
 import { User, UserUpdate } from './authentication.types';
+import { EditUserSchema } from './authentication.schemas';
 
 const registerUserAccount = async (email: string, password: string) => {
   const userInDatabase = await authenticationDB.getUserFromDatabase('email', email);
@@ -101,7 +102,7 @@ const resetUserPassword = async (passwordResetToken: string, newPassword: string
   });
 };
 
-const updateUserAccount = async (user: User, update: UserUpdate) => {
+/* const updateUserAccount = async (user: User, update: EditUserSchema2) => {
   const validationResult = await validateUserUpdate(user, update);
   if (!validationResult.isValid) {
     throw new Error(validationResult.error);
@@ -110,15 +111,49 @@ const updateUserAccount = async (user: User, update: UserUpdate) => {
   const { updates, field } = await buildUserUpdate(update);
 
   const updatedUser = await authenticationDB.updateUserInDatabase(user.id, updates);
+
   if (!updatedUser) {
     throw new Error(ERRORS.USER_NOT_FOUND);
   }
 
   if (field === 'email') {
     await mailService.sendEmailChangeNotification(user.email, update.value);
+  } else if (field === 'password') {
+    await mailService.sendPasswordChangeNotification(user.email);
   }
 
-  if (field === 'password') {
+  return { updatedUser };
+}; */
+
+const updateUserAccount = async (token: string, requestedUpdate: EditUserSchema) => {
+  const { userFieldName, userFieldValue } = requestedUpdate;
+  const user = await getUserFromToken(token, process.env.ACCESS_TOKEN_SECRET!);
+
+  if (userFieldName === 'password') {
+    const isPasswordValid = await validatePassword(
+      requestedUpdate.currentPassword,
+      user.hashed_password,
+    );
+
+    if (!isPasswordValid) {
+      throw new Error(ERRORS.INVALID_CURRENT_PASSWORD);
+    }
+  }
+
+  const fieldToUpdate = {
+    [requestedUpdate.userFieldName]: requestedUpdate.userFieldValue,
+  };
+
+  const updatedUser = await authenticationDB.updateUserInDatabase(user.id, fieldToUpdate);
+
+  if (!updatedUser) {
+    throw new Error(ERRORS.USER_NOT_FOUND);
+  }
+
+  // Needs to be more modular, these two functions do the same thing, just with different messages
+  if (userFieldName === 'email') {
+    await mailService.sendEmailChangeNotification(user.email, userFieldValue);
+  } else if (userFieldName === 'password') {
     await mailService.sendPasswordChangeNotification(user.email);
   }
 
