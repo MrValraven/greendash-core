@@ -140,7 +140,7 @@ const updateUserAccount = async (token: string, requestedUpdate: EditUserSchema)
       throw new Error(ERRORS.INVALID_CURRENT_PASSWORD);
     }
 
-    userFieldValueToUse = await hashPassword(requestedUpdate.userFieldValue);
+    userFieldValueToUse = await hashPassword(userFieldValue);
   }
 
   const fieldToUpdate = {
