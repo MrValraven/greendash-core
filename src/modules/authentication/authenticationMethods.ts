@@ -127,6 +127,7 @@ const resetUserPassword = async (passwordResetToken: string, newPassword: string
 
 const updateUserAccount = async (token: string, requestedUpdate: EditUserSchema) => {
   const { userFieldName, userFieldValue } = requestedUpdate;
+  let userFieldValueToUse = userFieldValue;
   const user = await getUserFromToken(token, process.env.ACCESS_TOKEN_SECRET!);
 
   if (userFieldName === 'password') {
@@ -138,10 +139,12 @@ const updateUserAccount = async (token: string, requestedUpdate: EditUserSchema)
     if (!isPasswordValid) {
       throw new Error(ERRORS.INVALID_CURRENT_PASSWORD);
     }
+
+    userFieldValueToUse = await hashPassword(requestedUpdate.userFieldValue);
   }
 
   const fieldToUpdate = {
-    [requestedUpdate.userFieldName]: requestedUpdate.userFieldValue,
+    [userFieldName]: userFieldValueToUse,
   };
 
   const updatedUser = await authenticationDB.updateUserInDatabase(user.id, fieldToUpdate);
