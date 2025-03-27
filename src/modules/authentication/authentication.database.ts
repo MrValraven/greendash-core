@@ -3,7 +3,10 @@ import { db } from '../../db';
 import { usersTable } from '../../db/schemas/users.sql';
 import { User, UserField, UserFieldValue } from './authentication.types';
 
-const createUserInDatabase = async (email: string, hashedPassword: string): Promise<User> => {
+const createUserInDatabase = async (
+  email: string,
+  hashedPassword: string,
+): Promise<Omit<User, 'refresh_token'>> => {
   const user = await db
     .insert(usersTable)
     .values({
@@ -32,6 +35,7 @@ const getUserFromDatabase = async (
       hashed_password: usersTable.hashed_password,
       email_verified: usersTable.email_verified,
       role: usersTable.role,
+      refresh_token: usersTable.refresh_token,
     })
     .from(usersTable)
     .where(eq(usersTable[field], value))
@@ -43,7 +47,7 @@ const getUserFromDatabase = async (
 const updateUserInDatabase = async (
   userId: number,
   updates: Partial<Omit<User, 'id'>>,
-): Promise<Omit<User, 'hashed_password'> | undefined> => {
+): Promise<Omit<User, 'hashed_password' | 'refresh_token'> | undefined> => {
   if (Object.keys(updates).length === 0) {
     throw new Error('No updates provided.');
   }
@@ -79,23 +83,9 @@ const storeRefreshTokenInDatabase = async (
   return user[0]?.refresh_token;
 };
 
-const getRefreshTokenFromDatabase = async (
-  userId: number,
-  token: string,
-): Promise<string | null> => {
-  const user = await db
-    .select({ refresh_token: usersTable.refresh_token })
-    .from(usersTable)
-    .where(and(eq(usersTable.id, userId), eq(usersTable.refresh_token, token)))
-    .limit(1);
-
-  return user[0]?.refresh_token;
-};
-
 export default {
   getUserFromDatabase,
   createUserInDatabase,
   storeRefreshTokenInDatabase,
-  getRefreshTokenFromDatabase,
   updateUserInDatabase,
 };

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { ERRORS } from './authenticationErrors';
-import authenticationMethods from './authenticationMethods';
+import { ERRORS } from './authentication.errors';
+import authenticationMethods from './authentication.methods';
 import { EditUserSchema } from './authentication.schemas';
 
 interface FormattedError extends Error {
@@ -38,7 +38,7 @@ const verifyEmail = async (request: Request, response: Response) => {
   if (!verificationToken) {
     response.status(400).json({
       success: false,
-      message: 'Verification token is required',
+      message: ERRORS.VERIFICATION_TOKEN_REQUIRED,
     });
     return;
   }
@@ -55,7 +55,7 @@ const verifyEmail = async (request: Request, response: Response) => {
     console.error(error);
     response.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: ERRORS.INTERNAL_SERVER_ERROR,
     });
     return;
   }
@@ -66,6 +66,7 @@ const loginUserAccount = async (request: Request, response: Response) => {
 
   try {
     const token = await authenticationMethods.loginUserAccount(email, password);
+    // create function to send secure cookies
     response.cookie('token', token.accessToken, { httpOnly: true });
     response.cookie('refreshToken', token.refreshToken, { httpOnly: true });
     response.status(200).json({
@@ -100,6 +101,7 @@ const refreshAccessToken = async (request: Request, response: Response) => {
 
   try {
     const accessToken = await authenticationMethods.refreshUserAccessToken(refreshToken);
+    // create function to send secure cookies
     response.cookie('token', accessToken, { httpOnly: true });
     response.status(200).json({
       success: true,
@@ -182,41 +184,6 @@ const resetPassword = async (request: Request, response: Response) => {
     });
   }
 };
-
-/* const editUserAccount = async (request: Request, response: Response) => {
-  const { field, value, currentPassword } = request.body;
-  const { token } = request.cookies;
-
-  if (!token) {
-    response.status(401).json({
-      success: false,
-      message: ERRORS.ACCESS_TOKEN_NOT_FOUND,
-    });
-    return;
-  }
-
-
-  try {
-    /* const user = await getUserFromToken(token, process.env.ACCESS_TOKEN_SECRET!);
-
-    await authenticationMethods.updateUserAccount(user, {
-      field,
-      value,
-      currentPassword,
-    });
-
-    response.status(200).json({
-      success: true,
-      message: 'User account updated successfully',
-    });
-  } catch (error) {
-    console.error('Error updating user account:', error);
-    response.status(500).json({
-      success: false,
-      message: 'Failed to update user account',
-    });
-  }
-}; */
 
 const editUserAccount = async (request: Request, response: Response) => {
   const { token } = request.cookies;

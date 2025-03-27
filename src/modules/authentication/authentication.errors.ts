@@ -11,6 +11,8 @@ export const ERRORS = {
   EXPIRED_VERIFICATION_TOKEN: 'Verification token has expired',
   EXPIRED_PASSWORD_RESET_TOKEN: 'Password reset token has expired',
 
+  VERIFICATION_TOKEN_REQUIRED: 'Verification token is required',
+
   ACCESS_TOKEN_NOT_FOUND: 'Access token not found',
   REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found',
 
@@ -25,4 +27,6 @@ export const ERRORS = {
   SAME_PASSWORD: 'New password cannot be the same as the current password',
 
   USER_NOT_FOUND: 'User not found',
+
+  INTERNAL_SERVER_ERROR: 'Internal server error',
 };

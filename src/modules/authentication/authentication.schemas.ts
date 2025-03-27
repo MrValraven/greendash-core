@@ -17,27 +17,9 @@ export const resetPasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
-/* export const editUserSchema = z
-  .object({
-    field: z.enum(['email', 'password']),
-    value: z.string(),
-    currentPassword: z.string().min(8, 'Current password is required'),
-  })
-  .refine(
-    (data) => {
-      switch (data.field) {
-        case 'email':
-          return z.string().email().safeParse(data.value).success;
-        case 'password':
-          return data.value.length >= 8;
-        default:
-          return false;
-      }
-    },
-    {
-      message: 'Invalid value for selected field',
-    },
-  ); */
+export const resetPasswordRequestSchema = z.object({
+  email: emailSchema,
+});
 
 export const editUserSchema = z
   .object({
