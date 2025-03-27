@@ -1,4 +1,5 @@
 import { tokenSecrets } from './authentication.config';
+import { ERRORS } from './authentication.errors';
 
 export interface User {
   id: number;
@@ -20,3 +21,5 @@ export type TokenType = keyof typeof tokenSecrets;
 
 export type UserField = 'id' | 'email';
 export type UserFieldValue = string | number;
+
+export type ErrorCategories = keyof typeof ERRORS;

@@ -16,7 +16,7 @@ const registerUserAccount = async (email: string, password: string) => {
   const userInDatabase = await authenticationDB.getUserFromDatabase('email', email);
 
   if (userInDatabase) {
-    throw new Error(ERRORS.EMAIL_IN_USE);
+    throw new Error(ERRORS.EMAIL_IN_USE.message);
   }
 
   const passwordHash = await hashPassword(password);
@@ -32,7 +32,7 @@ const verifyUserEmail = async (verificationToken: string) => {
   const user = await getUserFromDatabaseViaTokenInfo(verificationToken, 'verifyToken');
 
   if (user.email_verified) {
-    throw new Error(ERRORS.EMAIL_ALREADY_VERIFIED);
+    throw new Error(ERRORS.EMAIL_ALREADY_VERIFIED.message);
   }
 
   await authenticationDB.updateUserInDatabase(user.id, {
@@ -99,7 +99,7 @@ const updateUserAccount = async (token: string, requestedUpdate: EditUserSchema)
   const updatedUser = await authenticationDB.updateUserInDatabase(user.id, fieldToUpdate);
 
   if (!updatedUser) {
-    throw new Error(ERRORS.USER_NOT_FOUND);
+    throw new Error(ERRORS.USER_NOT_FOUND.message);
   }
 
   const dataToSendInEmailBody = userFieldName === 'email' ? updatedUser.email : undefined;

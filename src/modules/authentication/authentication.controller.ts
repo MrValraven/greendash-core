@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ERRORS } from './authentication.errors';
 import authenticationMethods from './authentication.methods';
 import { EditUserSchema } from './authentication.schemas';
+import { sendCustomErrorResponse, sendHttpOnlySecureCookie } from './authentication.utils';
 
 interface FormattedError extends Error {
   statusCode?: number;
@@ -36,10 +37,7 @@ const verifyEmail = async (request: Request, response: Response) => {
   const { verificationToken } = request.query;
 
   if (!verificationToken) {
-    response.status(400).json({
-      success: false,
-      message: ERRORS.VERIFICATION_TOKEN_REQUIRED,
-    });
+    sendCustomErrorResponse(response, 'VERIFICATION_TOKEN_REQUIRED');
     return;
   }
 
@@ -53,11 +51,16 @@ const verifyEmail = async (request: Request, response: Response) => {
     return;
   } catch (error) {
     console.error(error);
-    response.status(500).json({
-      success: false,
-      message: ERRORS.INTERNAL_SERVER_ERROR,
-    });
-    return;
+    if (error instanceof Error) {
+      switch (error.message) {
+        case ERRORS.EMAIL_ALREADY_VERIFIED.message:
+          sendCustomErrorResponse(response, 'EMAIL_ALREADY_VERIFIED');
+          break;
+        default:
+          sendCustomErrorResponse(response, 'INTERNAL_SERVER_ERROR');
+          break;
+      }
+    }
   }
 };
 
@@ -66,15 +69,13 @@ const loginUserAccount = async (request: Request, response: Response) => {
 
   try {
     const token = await authenticationMethods.loginUserAccount(email, password);
-    // create function to send secure cookies
-    response.cookie('token', token.accessToken, { httpOnly: true });
-    response.cookie('refreshToken', token.refreshToken, { httpOnly: true });
+
+    sendHttpOnlySecureCookie(response, 'token', token.accessToken);
+    sendHttpOnlySecureCookie(response, 'refreshToken', token.refreshToken);
+
     response.status(200).json({
       success: true,
       message: 'User logged in successfully',
-      email,
-      password,
-      token,
     });
     return;
   } catch (error) {
@@ -92,17 +93,14 @@ const refreshAccessToken = async (request: Request, response: Response) => {
   const { refreshToken } = request.cookies;
 
   if (!refreshToken) {
-    response.status(401).json({
-      success: false,
-      message: ERRORS.REFRESH_TOKEN_NOT_FOUND,
-    });
+    sendCustomErrorResponse(response, 'REFRESH_TOKEN_REQUIRED');
     return;
   }
 
   try {
     const accessToken = await authenticationMethods.refreshUserAccessToken(refreshToken);
-    // create function to send secure cookies
-    response.cookie('token', accessToken, { httpOnly: true });
+
+    sendHttpOnlySecureCookie(response, 'token', accessToken);
     response.status(200).json({
       success: true,
       message: 'Access token refreshed successfully',
@@ -110,7 +108,20 @@ const refreshAccessToken = async (request: Request, response: Response) => {
     });
     return;
   } catch (error) {
-    console.error('Error verifying token:', error);
+    console.error('Error refreshing access token:', error);
+    if (error instanceof Error) {
+      switch (error.message) {
+        case ERRORS.USER_NOT_FOUND.message:
+          sendCustomErrorResponse(response, 'USER_NOT_FOUND');
+          break;
+        case ERRORS.INVALID_REFRESH_TOKEN.message:
+          sendCustomErrorResponse(response, 'INVALID_REFRESH_TOKEN');
+          break;
+        default:
+          sendCustomErrorResponse(response, 'INTERNAL_SERVER_ERROR');
+          break;
+      }
+    }
     response.status(500).json({
       success: false,
       message: 'Internal server error',

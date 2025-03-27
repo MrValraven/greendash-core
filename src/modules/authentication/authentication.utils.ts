@@ -1,8 +1,9 @@
+import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import authenticationDB from './authentication.database';
 import { ERRORS } from './authentication.errors';
-import { TokenType, UserField, UserFieldValue } from './authentication.types';
+import { ErrorCategories, TokenType, UserField, UserFieldValue } from './authentication.types';
 import { tokenSecrets } from './authentication.config';
 
 const hashPassword = async (password: string) => {
@@ -14,7 +15,7 @@ const validatePassword = async (password: string, hashedPassword: string) => {
   const isPasswordValid = await bcrypt.compare(password, hashedPassword);
 
   if (!isPasswordValid) {
-    throw new Error(ERRORS.INVALID_CREDENTIALS);
+    throw new Error(ERRORS.INVALID_CREDENTIALS.message);
   }
 };
 
@@ -34,10 +35,10 @@ const verifyToken = async (token: string, tokenType: TokenType) => {
     return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      throw new Error(ERRORS.EXPIRED_TOKEN);
+      throw new Error(ERRORS.EXPIRED_TOKEN.message);
     }
     if (error instanceof jwt.JsonWebTokenError) {
-      throw new Error(ERRORS.INVALID_TOKEN);
+      throw new Error(ERRORS.INVALID_TOKEN.message);
     }
     throw error;
   }
@@ -48,7 +49,7 @@ const verifyIfRefreshTokenIsInDatabase = async (
   tokenFromRequest: string,
 ): Promise<void> => {
   if (tokenFromUser !== tokenFromRequest) {
-    throw new Error(ERRORS.INVALID_REFRESH_TOKEN);
+    throw new Error(ERRORS.INVALID_REFRESH_TOKEN.message);
   }
 };
 
@@ -56,7 +57,7 @@ const getUserFromDatabase = async (field: UserField, value: UserFieldValue) => {
   const user = await authenticationDB.getUserFromDatabase(field, value);
 
   if (!user) {
-    throw new Error(ERRORS.USER_NOT_FOUND);
+    throw new Error(ERRORS.USER_NOT_FOUND.message);
   }
 
   return user;
@@ -69,6 +70,23 @@ const getUserFromDatabaseViaTokenInfo = async (token: string, tokenType: TokenTy
   return user;
 };
 
+const sendHttpOnlySecureCookie = (response: Response, cookieName: string, token: string) => {
+  response.cookie(cookieName, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+  });
+};
+
+const sendCustomErrorResponse = (response: Response, errorType: ErrorCategories) => {
+  const statusCode = ERRORS[errorType].statusCode;
+  const errorMessage = ERRORS[errorType].message;
+
+  response.status(statusCode).json({
+    success: false,
+    message: errorMessage,
+  });
+};
+
 export {
   hashPassword,
   validatePassword,
@@ -77,4 +95,6 @@ export {
   verifyIfRefreshTokenIsInDatabase,
   getUserFromDatabase,
   getUserFromDatabaseViaTokenInfo,
+  sendHttpOnlySecureCookie,
+  sendCustomErrorResponse,
 };
