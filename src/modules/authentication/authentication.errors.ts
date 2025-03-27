@@ -53,6 +53,11 @@ export const ERRORS = {
     statusCode: STATUS_CODES.BAD_REQUEST,
     message: 'Verification token is required',
   },
+  PASSWORD_RESET_TOKEN_REQUIRED: {
+    statusCode: STATUS_CODES.BAD_REQUEST,
+    message: 'Password reset token is required',
+  },
+
   INVALID_CREDENTIALS: {
     statusCode: STATUS_CODES.UNAUTHORIZED,
     message: 'Invalid credentials',
