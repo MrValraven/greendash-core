@@ -2,7 +2,13 @@ import { config } from 'dotenv';
 
 config();
 
-export const checkIfEnvironmentVariablesAreSet = (): never => {
+const SERVER_ERROR_STATUS = 1;
+
+const terminateNodeProcessWithError = () => {
+  process.exit(SERVER_ERROR_STATUS);
+};
+
+export const checkIfEnvironmentVariablesAreSet = () => {
   const requiredEnvironmentVariables = [
     'DATABASE_URL',
     'ACCESS_TOKEN_SECRET',
@@ -19,5 +25,5 @@ export const checkIfEnvironmentVariablesAreSet = (): never => {
     }
   });
 
-  process.exit(1);
+  terminateNodeProcessWithError();
 };
