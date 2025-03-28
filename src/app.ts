@@ -1,6 +1,7 @@
 import express, { json, urlencoded } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import router from './routes';
 import { config } from 'dotenv';
 import { ShutdownCategories } from './types/app.types';
@@ -10,11 +11,18 @@ config();
 const PORT = 3000;
 const app = express();
 
+const apiRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 100, // limit each IP to 100 requests per window
+});
+
+app.use('/api/', apiRateLimiter);
+
 app.use(helmet());
 app.use(cookieParser());
 
-app.use(urlencoded({ extended: false }));
-app.use(json());
+app.use(urlencoded({ extended: false, limit: '1mb' }));
+app.use(json({ limit: '1mb' }));
 
 app.use('/', router);
 
