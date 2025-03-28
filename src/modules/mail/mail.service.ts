@@ -1,10 +1,7 @@
 import { sendEmail } from './mail.utils';
 import { VerificationEmailCategory, NotificationEmailCategory } from './mail.types';
-import {
-  BASE_URL,
-  verificationEmailCategories,
-  notificationEmailCategories,
-} from './mail.constants';
+import { BASE_API_URL } from '../../constants/app.constants';
+import { verificationEmailCategories, notificationEmailCategories } from './mail.constants';
 
 const sendVerificationEmail = async (
   userEmail: string,
@@ -12,7 +9,7 @@ const sendVerificationEmail = async (
   token: string,
 ) => {
   const { subject, category, path, body } = verificationEmailCategories[emailCategory];
-  const url = `${BASE_URL}${path}${token}`;
+  const url = `${BASE_API_URL}${path}${token}`;
   const recipients = [{ email: userEmail }];
   const emailBody = body.replace('$url', url);
 

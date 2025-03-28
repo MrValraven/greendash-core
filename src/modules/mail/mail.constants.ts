@@ -1,10 +1,8 @@
-export const BASE_URL = 'http://localhost:3001';
-
 export const verificationEmailCategories = {
   emailVerification: {
     subject: 'Verify your email address',
     category: 'Email Verification',
-    path: '/verify-email?verificationToken=',
+    path: '/users/email/verify?verificationToken=',
     body: `
           <h1>Welcome to Our Service!</h1>
           <p>Please verify your email address by clicking the link below:</p>
@@ -15,7 +13,7 @@ export const verificationEmailCategories = {
   passwordReset: {
     subject: 'Reset Your Password',
     category: 'Password Reset',
-    path: '/reset-password?passwordResetToken=',
+    path: '/users/password/reset?passwordResetToken=',
     body: `
           <h1>Password Reset Request</h1>
           <p>You requested to reset your password. Click the link below to set a new password:</p>
