@@ -19,7 +19,7 @@ router.post(
   validateBodyData(loginSchema),
   authenticationController.loginUserAccount,
 );
-router.post(
+router.get(
   `${BASE_CORE_API_PATH}/users/logout`,
   verifyToken,
   authenticationController.logoutUserAccount,
@@ -27,6 +27,11 @@ router.post(
 router.get(`${BASE_CORE_API_PATH}/tokens/refresh`, authenticationController.refreshAccessToken);
 
 // User routes
+router.get(
+  `${BASE_CORE_API_PATH}/users/me`,
+  verifyToken,
+  authenticationController.getCurrentUserData,
+);
 router.post(
   `${BASE_CORE_API_PATH}/users/register`,
   validateBodyData(registerSchema),
