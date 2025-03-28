@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
 
-export function validateBodyData<T extends z.ZodObject<any>>(schema: T) {
+export function validateBodyData(schema: z.ZodTypeAny) {
   return (request: Request, response: Response, next: NextFunction) => {
     try {
       schema.parse(request.body);

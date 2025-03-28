@@ -1,31 +1,57 @@
 import { Router } from 'express';
-import authenticationController from './modules/authentication/authenticationController';
+import { BASE_CORE_API_PATH } from './constants/app.constants';
+import authenticationController from './modules/authentication/authentication.controller';
 import { validateBodyData } from './middlewares/validationMiddleware';
 import { verifyToken } from './middlewares/authMiddleware';
-import { registerSchema, loginSchema } from './modules/authentication/authentication.schemas';
+import {
+  registerSchema,
+  loginSchema,
+  resetPasswordSchema,
+  resetPasswordRequestSchema,
+  editUserSchema,
+} from './modules/authentication/authentication.schemas';
 
 const router = Router();
 
+// Authentication routes
 router.post(
-  '/auth/register',
-  validateBodyData(registerSchema),
-  authenticationController.registerUserAccount,
-);
-
-router.post(
-  '/auth/login',
+  `${BASE_CORE_API_PATH}/users/login`,
   validateBodyData(loginSchema),
   authenticationController.loginUserAccount,
 );
+router.post(
+  `${BASE_CORE_API_PATH}/users/logout`,
+  verifyToken,
+  authenticationController.logoutUserAccount,
+);
+router.get(`${BASE_CORE_API_PATH}/tokens/refresh`, authenticationController.refreshAccessToken);
 
-router.get('/auth/refresh', authenticationController.refreshAccessToken);
+// User routes
+router.post(
+  `${BASE_CORE_API_PATH}/users/register`,
+  validateBodyData(registerSchema),
+  authenticationController.registerUserAccount,
+);
+router.put(
+  `${BASE_CORE_API_PATH}/users`,
+  verifyToken,
+  validateBodyData(editUserSchema),
+  authenticationController.editUserAccount,
+);
 
-router.get('/auth/logout', verifyToken, authenticationController.logoutUserAccount);
+// Password management
+router.post(
+  `${BASE_CORE_API_PATH}/users/password/reset-request`,
+  validateBodyData(resetPasswordRequestSchema),
+  authenticationController.requestPasswordReset,
+);
+router.post(
+  `${BASE_CORE_API_PATH}/users/password/reset`,
+  validateBodyData(resetPasswordSchema),
+  authenticationController.resetPassword,
+);
 
-router.post('/auth/password-reset-request', authenticationController.requestPasswordReset);
-
-router.post('/auth/password-reset', authenticationController.resetPassword);
-
-router.get('/auth/verify-email', authenticationController.verifyEmail);
+// Email verification
+router.get(`${BASE_CORE_API_PATH}/users/email/verify`, authenticationController.verifyEmail);
 
 export default router;
