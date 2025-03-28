@@ -4,10 +4,6 @@ import authenticationMethods from './authentication.methods';
 import { EditUserSchema } from './authentication.schemas';
 import { sendCustomErrorResponse, sendHttpOnlySecureCookie } from './authentication.utils';
 
-interface FormattedError extends Error {
-  statusCode?: number;
-}
-
 const registerUserAccount = async (request: Request, response: Response) => {
   const { email, password } = request.body;
 
