@@ -124,11 +124,6 @@ const refreshAccessToken = async (request: Request, response: Response) => {
           break;
       }
     }
-    response.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
-    return;
   }
 };
 
