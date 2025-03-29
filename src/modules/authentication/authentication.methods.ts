@@ -11,6 +11,7 @@ import authenticationDB from './authentication.database';
 import mailService from '../mail/mail.service';
 import { EditUserSchema } from './authentication.schemas';
 import { NotificationEmailCategory } from '../mail/mail.types';
+import { User } from './authentication.types';
 
 const registerUserAccount = async (email: string, password: string) => {
   const userInDatabase = await authenticationDB.getUserFromDatabase('email', email);
@@ -109,6 +110,17 @@ const updateUserAccount = async (token: string, requestedUpdate: EditUserSchema)
   return { updatedUser };
 };
 
+const getCurrentUserData = async (token: string) => {
+  const userData = await getUserFromDatabaseViaTokenInfo(token, 'accessToken');
+
+  const requiredUserData: Partial<User> = {
+    email: userData.email,
+    role: userData.role,
+  };
+
+  return requiredUserData;
+};
+
 export default {
   registerUserAccount,
   verifyUserEmail,
@@ -117,4 +129,5 @@ export default {
   requestUserPasswordReset,
   resetUserPassword,
   updateUserAccount,
+  getCurrentUserData,
 };

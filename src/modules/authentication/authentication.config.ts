@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 export const tokenSecrets = {
   verifyToken: process.env.VERIFY_TOKEN_SECRET!,
   accessToken: process.env.ACCESS_TOKEN_SECRET!,
