@@ -124,11 +124,6 @@ const refreshAccessToken = async (request: Request, response: Response) => {
           break;
       }
     }
-    response.status(500).json({
-      success: false,
-      message: 'Internal server error',
-    });
-    return;
   }
 };
 
@@ -233,6 +228,34 @@ const editUserAccount = async (request: Request, response: Response) => {
   }
 };
 
+const getCurrentUserData = async (request: Request, response: Response) => {
+  const { token } = request.cookies;
+
+  try {
+    const userData = await authenticationMethods.getCurrentUserData(token);
+
+    response.status(200).json({
+      success: true,
+      data: userData,
+    });
+  } catch (error) {
+    console.error('GetCurrentUserData error:', error);
+    if (error instanceof Error) {
+      switch (error.message) {
+        case ERRORS.INVALID_TOKEN.message:
+          sendCustomErrorResponse(response, 'INVALID_TOKEN');
+          break;
+        case ERRORS.USER_NOT_FOUND.message:
+          sendCustomErrorResponse(response, 'USER_NOT_FOUND');
+          break;
+        default:
+          sendCustomErrorResponse(response, 'INTERNAL_SERVER_ERROR');
+          break;
+      }
+    }
+  }
+};
+
 export default {
   registerUserAccount,
   verifyEmail,
@@ -242,4 +265,5 @@ export default {
   requestPasswordReset,
   resetPassword,
   editUserAccount,
+  getCurrentUserData,
 };
