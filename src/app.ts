@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import router from './routes';
 import { config } from 'dotenv';
 import { ShutdownCategories } from './types/app.types';
+import { checkIfEnvironmentVariablesAreSet } from './utils/app.utils';
 
 config();
 
@@ -27,6 +28,7 @@ app.use(json({ limit: '1mb' }));
 app.use('/', router);
 
 const server = app.listen(PORT, () => {
+  checkIfEnvironmentVariablesAreSet();
   console.log('Server is running on port 3000');
 });
 
