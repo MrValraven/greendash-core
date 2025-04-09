@@ -282,7 +282,7 @@ const startGoogleLogin = async (request: Request, response: Response) => {
   }
 };
 
-const loginUserWithGoogle = async (request: Request, response: Response) => {
+const completeGoogleLogin = async (request: Request, response: Response) => {
   const { code } = request.query;
 
   if (!code) {
@@ -337,5 +337,5 @@ export default {
   editUserAccount,
   getCurrentUserData,
   startGoogleLogin,
-  loginUserWithGoogle,
+  completeGoogleLogin,
 };
