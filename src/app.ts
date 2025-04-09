@@ -6,6 +6,7 @@ import router from './routes';
 import { config } from 'dotenv';
 import { ShutdownCategories } from './types/app.types';
 import { checkIfEnvironmentVariablesAreSet } from './utils/app.utils';
+import { checkDbConnection } from './db';
 
 config();
 
@@ -29,7 +30,8 @@ app.use('/', router);
 
 const server = app.listen(PORT, () => {
   checkIfEnvironmentVariablesAreSet();
-  console.log('Server is running on port 3000');
+  checkDbConnection();
+  console.log(`Server is running on port ${PORT}`);
 });
 
 // Graceful Shutdown (Ensures smooth process termination)
