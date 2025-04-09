@@ -5,6 +5,9 @@ config();
 const SERVER_ERROR_STATUS = 1;
 
 const terminateNodeProcessWithError = () => {
+  console.log(
+    'There were some issues with the server configuration. Gracefully exiting process...',
+  );
   process.exit(SERVER_ERROR_STATUS);
 };
 
