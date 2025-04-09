@@ -9,6 +9,7 @@ const terminateNodeProcessWithError = () => {
 };
 
 export const checkIfEnvironmentVariablesAreSet = () => {
+  let hasMissingEnvironmentVariables = false;
   const requiredEnvironmentVariables = [
     'DATABASE_URL',
     'ACCESS_TOKEN_SECRET',
@@ -22,8 +23,11 @@ export const checkIfEnvironmentVariablesAreSet = () => {
   requiredEnvironmentVariables.forEach((environmentVariable) => {
     if (!process.env[environmentVariable]) {
       console.error(`Error: Missing required environment variable: ${environmentVariable}`);
+      hasMissingEnvironmentVariables = true;
     }
   });
 
-  terminateNodeProcessWithError();
+  if (hasMissingEnvironmentVariables) {
+    terminateNodeProcessWithError();
+  }
 };
