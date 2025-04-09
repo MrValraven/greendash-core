@@ -23,7 +23,7 @@ export const sendEmail = async (
       stack: error instanceof Error ? error.stack : undefined,
       sender,
       recipients,
-      apiTokenExists: !!process.env.MAILTRAP_API_TOKEN,
+      apiTokenExists: !!process.env.MAIL_SERVICE_TOKEN,
     });
 
     throw new Error(

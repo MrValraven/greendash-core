@@ -26,6 +26,15 @@ router.get(
 );
 router.get(`${BASE_CORE_API_PATH}/tokens/refresh`, authenticationController.refreshAccessToken);
 
+// OAuth routes
+
+router.get(`${BASE_CORE_API_PATH}/users/oauth/google`, authenticationController.startGoogleLogin);
+
+router.get(
+  `${BASE_CORE_API_PATH}/users/oauth/google/callback`,
+  authenticationController.loginUserWithGoogle,
+);
+
 // User routes
 router.get(
   `${BASE_CORE_API_PATH}/users/me`,
