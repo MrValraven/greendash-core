@@ -1,5 +1,5 @@
 import { GOOGLE_OAUTH_CONFIG } from './oauth.config';
-import { GoogleTokensResponse, GoogleUserInfoResponse } from './oauth.types';
+import { GoogleTokensResponse, GoogleUserInfo } from './oauth.types';
 import { ERRORS } from '../authentication/authentication.errors';
 import { generateRandomPassword, hashPassword } from '../authentication/authentication.utils';
 import authenticationDB from '../authentication/authentication.database';
@@ -45,7 +45,7 @@ const getGoogleTokens = async (code: string): Promise<GoogleTokensResponse> => {
   }
 };
 
-const getGoogleUserInfo = async (accessToken: string): Promise<GoogleUserInfoResponse> => {
+const getGoogleUserInfo = async (accessToken: string): Promise<GoogleUserInfo> => {
   try {
     const response = await fetch(GOOGLE_OAUTH_CONFIG.userinfo_uri, {
       method: 'GET',

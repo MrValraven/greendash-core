@@ -6,7 +6,7 @@ export interface GoogleTokensResponse {
   id_token: string;
 }
 
-export interface GoogleUserInfoResponse {
+export interface GoogleUserInfo {
   id: string;
   email: string;
   verified_email: boolean;
