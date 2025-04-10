@@ -86,4 +86,33 @@ export const ERRORS = {
     statusCode: STATUS_CODES.BAD_REQUEST,
     message: 'Refresh token is required',
   },
+
+  GOOGLE_AUTH_URL_NOT_FOUND: {
+    statusCode: STATUS_CODES.NOT_FOUND,
+    message: 'Google authorization URL not found',
+  },
+  GOOGLE_AUTH_CODE_REQUIRED: {
+    statusCode: STATUS_CODES.BAD_REQUEST,
+    message: 'Google authorization code is required',
+  },
+  GOOGLE_AUTH_FAILED: {
+    statusCode: STATUS_CODES.UNAUTHORIZED,
+    message: 'Google authentication failed',
+  },
+  GOOGLE_TOKEN_FAILURE: {
+    statusCode: STATUS_CODES.UNAUTHORIZED,
+    message: 'Failed to retrieve Google tokens',
+  },
+  GOOGLE_USER_INFO_FAILURE: {
+    statusCode: STATUS_CODES.UNAUTHORIZED,
+    message: 'Failed to retrieve Google user information',
+  },
+  GOOGLE_EMAIL_NOT_VERIFIED: {
+    statusCode: STATUS_CODES.BAD_REQUEST,
+    message: 'Google email not verified',
+  },
+  INVALID_GOOGLE_RESPONSE: {
+    statusCode: STATUS_CODES.BAD_REQUEST,
+    message: 'Invalid response from Google',
+  },
 };

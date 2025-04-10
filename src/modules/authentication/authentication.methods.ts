@@ -6,6 +6,7 @@ import {
   getUserFromDatabase,
   getUserFromDatabaseViaTokenInfo,
 } from './authentication.utils';
+import { createGoogleUser, getGoogleTokens, getGoogleUserInfo } from '../oauth/oauth.utils';
 import { ERRORS } from './authentication.errors';
 import authenticationDB from './authentication.database';
 import mailService from '../mail/mail.service';
@@ -121,6 +122,34 @@ const getCurrentUserData = async (token: string) => {
   return requiredUserData;
 };
 
+const authenticateWithGoogle = async (code: string) => {
+  const { access_token } = await getGoogleTokens(code);
+
+  const googleUser = await getGoogleUserInfo(access_token);
+
+  if (!googleUser.verified_email) {
+    throw new Error(ERRORS.GOOGLE_EMAIL_NOT_VERIFIED.message);
+  }
+
+  let user = await authenticationDB.getUserFromDatabase('email', googleUser.email);
+
+  if (!user) {
+    const createdUser = await createGoogleUser(googleUser.email);
+    user = await authenticationDB.getUserFromDatabase('id', createdUser.id);
+
+    if (!user) {
+      throw new Error(ERRORS.USER_NOT_FOUND.message);
+    }
+  }
+
+  const accessToken = generateToken(user.id, 'accessToken', '30s');
+  const refreshToken = generateToken(user.id, 'refreshToken', '1d');
+
+  await authenticationDB.storeRefreshTokenInDatabase(user.id, refreshToken);
+
+  return { accessToken, refreshToken };
+};
+
 export default {
   registerUserAccount,
   verifyUserEmail,
@@ -130,4 +159,5 @@ export default {
   resetUserPassword,
   updateUserAccount,
   getCurrentUserData,
+  authenticateWithGoogle,
 };

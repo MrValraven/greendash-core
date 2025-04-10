@@ -20,7 +20,6 @@ export const checkIfEnvironmentVariablesAreSet = () => {
     'REFRESH_TOKEN_SECRET',
     'PASSWORD_RESET_TOKEN_SECRET',
     'MAIL_SERVICE_TOKEN',
-    'MAILTRAP_API_KEY',
   ];
 
   requiredEnvironmentVariables.forEach((environmentVariable) => {
