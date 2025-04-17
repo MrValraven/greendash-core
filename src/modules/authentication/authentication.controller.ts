@@ -3,6 +3,7 @@ import { ERRORS } from './authentication.errors';
 import authenticationMethods from './authentication.methods';
 import { EditUserSchema } from './authentication.schemas';
 import { sendCustomErrorResponse, sendHttpOnlySecureCookie } from './authentication.utils';
+import { getGoogleOAuthURL } from '../oauth/oauth.utils';
 
 const registerUserAccount = async (request: Request, response: Response) => {
   const { email, password } = request.body;
@@ -186,8 +187,8 @@ const resetPassword = async (request: Request, response: Response) => {
     console.error('Password reset error:', error);
     if (error instanceof Error) {
       switch (error.message) {
-        case ERRORS.INVALID_TOKEN.message:
-          sendCustomErrorResponse(response, 'INVALID_TOKEN');
+        case ERRORS.EXPIRED_PASSWORD_RESET_TOKEN.message:
+          sendCustomErrorResponse(response, 'EXPIRED_PASSWORD_RESET_TOKEN');
           break;
         case ERRORS.USER_NOT_FOUND.message:
           sendCustomErrorResponse(response, 'USER_NOT_FOUND');
@@ -256,6 +257,75 @@ const getCurrentUserData = async (request: Request, response: Response) => {
   }
 };
 
+const startGoogleLogin = async (request: Request, response: Response) => {
+  try {
+    const googleAuthURL = getGoogleOAuthURL();
+
+    if (!googleAuthURL) {
+      sendCustomErrorResponse(response, 'GOOGLE_AUTH_URL_NOT_FOUND');
+      return;
+    }
+
+    response.redirect(googleAuthURL);
+  } catch (error) {
+    console.error('Google login error:', error);
+    if (error instanceof Error) {
+      switch (error.message) {
+        case ERRORS.GOOGLE_AUTH_URL_NOT_FOUND.message:
+          sendCustomErrorResponse(response, 'GOOGLE_AUTH_URL_NOT_FOUND');
+          break;
+        default:
+          sendCustomErrorResponse(response, 'INTERNAL_SERVER_ERROR');
+          break;
+      }
+    }
+  }
+};
+
+const completeGoogleLogin = async (request: Request, response: Response) => {
+  const { code } = request.query;
+
+  if (!code) {
+    sendCustomErrorResponse(response, 'GOOGLE_AUTH_CODE_REQUIRED');
+    return;
+  }
+
+  try {
+    const { accessToken, refreshToken } = await authenticationMethods.authenticateWithGoogle(
+      code as string,
+    );
+
+    sendHttpOnlySecureCookie(response, 'token', accessToken);
+    sendHttpOnlySecureCookie(response, 'refreshToken', refreshToken);
+
+    //redirect the user to client url
+
+    response.status(200).json({
+      success: true,
+      message: 'User logged in successfully with Google',
+    });
+    return;
+  } catch (error) {
+    console.error('Google login error::', error);
+    if (error instanceof Error) {
+      switch (error.message) {
+        case ERRORS.GOOGLE_EMAIL_NOT_VERIFIED.message:
+          sendCustomErrorResponse(response, 'GOOGLE_EMAIL_NOT_VERIFIED');
+          break;
+        case ERRORS.USER_NOT_FOUND.message:
+          sendCustomErrorResponse(response, 'USER_NOT_FOUND');
+          break;
+        case ERRORS.EMAIL_IN_USE.message:
+          sendCustomErrorResponse(response, 'EMAIL_IN_USE');
+          break;
+        default:
+          sendCustomErrorResponse(response, 'INTERNAL_SERVER_ERROR');
+          break;
+      }
+    }
+  }
+};
+
 export default {
   registerUserAccount,
   verifyEmail,
@@ -266,4 +336,6 @@ export default {
   resetPassword,
   editUserAccount,
   getCurrentUserData,
+  startGoogleLogin,
+  completeGoogleLogin,
 };
