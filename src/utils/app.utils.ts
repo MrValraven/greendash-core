@@ -20,6 +20,8 @@ export const checkIfEnvironmentVariablesAreSet = () => {
     'REFRESH_TOKEN_SECRET',
     'PASSWORD_RESET_TOKEN_SECRET',
     'MAIL_SERVICE_TOKEN',
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
   ];
 
   requiredEnvironmentVariables.forEach((environmentVariable) => {
