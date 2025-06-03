@@ -8,6 +8,9 @@ const terminateNodeProcessWithError = () => {
   console.log(
     'There were some issues with the server configuration. Gracefully exiting process...',
   );
+  console.log(
+    'There were some issues with the server configuration. Gracefully exiting process...',
+  );
   process.exit(SERVER_ERROR_STATUS);
 };
 
