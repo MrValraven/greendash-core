@@ -8,10 +8,14 @@ const terminateNodeProcessWithError = () => {
   console.log(
     'There were some issues with the server configuration. Gracefully exiting process...',
   );
+  console.log(
+    'There were some issues with the server configuration. Gracefully exiting process...',
+  );
   process.exit(SERVER_ERROR_STATUS);
 };
 
 export const checkIfEnvironmentVariablesAreSet = () => {
+  console.log('Checking if all required environment variables are set...');
   let hasMissingEnvironmentVariables = false;
   const requiredEnvironmentVariables = [
     'DATABASE_URL',

@@ -1,5 +1,5 @@
-import { tokenSecrets } from './authentication.config';
-import { ERRORS } from './authentication.errors';
+import { tokenSecrets } from './authentication.config.js';
+import { ERRORS } from './authentication.errors.js';
 
 export interface User {
   id: number;

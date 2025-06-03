@@ -1,7 +1,7 @@
 import { pgEnum, pgTable as table } from 'drizzle-orm/pg-core';
 import { integer, varchar, timestamp, boolean } from 'drizzle-orm/pg-core';
 
-import { timestamps } from './columns.helpers';
+import { timestamps } from './columns.helpers.js';
 
 export const rolesEnum = pgEnum('roles', ['user', 'admin', 'organization']);
 export const accountStatusEnum = pgEnum('account_status', [

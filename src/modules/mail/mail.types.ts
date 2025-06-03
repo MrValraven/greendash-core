@@ -1,4 +1,4 @@
-import { verificationEmailCategories, notificationEmailCategories } from './mail.constants';
+import { verificationEmailCategories, notificationEmailCategories } from './mail.constants.js';
 
 export type VerificationEmailCategory = keyof typeof verificationEmailCategories;
 

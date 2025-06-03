@@ -1,15 +1,16 @@
 import { Router } from 'express';
-import { BASE_CORE_API_PATH } from './constants/app.constants';
-import authenticationController from './modules/authentication/authentication.controller';
-import { validateBodyData } from './middlewares/validationMiddleware';
-import { verifyToken } from './middlewares/authMiddleware';
+import { BASE_CORE_API_PATH } from './constants/app.constants.js';
+import authenticationController from './modules/authentication/authentication.controller.js';
+import { validateBodyData } from './middlewares/validationMiddleware.js';
+import { verifyToken } from './middlewares/authMiddleware.js';
 import {
   registerSchema,
   loginSchema,
   resetPasswordSchema,
   resetPasswordRequestSchema,
   editUserSchema,
-} from './modules/authentication/authentication.schemas';
+} from './modules/authentication/authentication.schemas.js';
+import aiController from './modules/ai/ai.controller.js';
 
 const router = Router();
 
@@ -58,5 +59,8 @@ router.post(
 
 // Email verification
 router.get(`${BASE_CORE_API_PATH}/users/email/verify`, authenticationController.verifyEmail);
+
+// Email verification
+router.post(`${BASE_CORE_API_PATH}/ai/build`, aiController.buildAiResponse);
 
 export default router;

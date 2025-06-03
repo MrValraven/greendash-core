@@ -1,10 +1,10 @@
 import { Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import authenticationDB from './authentication.database';
-import { ERRORS } from './authentication.errors';
-import { ErrorCategories, TokenType, UserField, UserFieldValue } from './authentication.types';
-import { tokenSecrets } from './authentication.config';
+import authenticationDB from './authentication.database.js';
+import { ERRORS } from './authentication.errors.js';
+import { ErrorCategories, TokenType, UserField, UserFieldValue } from './authentication.types.js';
+import { tokenSecrets } from './authentication.config.js';
 
 const hashPassword = async (password: string) => {
   const SALT_ROUNDS = 10;

@@ -2,11 +2,11 @@ import express, { json, urlencoded } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import router from './routes';
+import router from './routes.js';
 import { config } from 'dotenv';
 import { ShutdownCategories } from './types/app.types';
-import { checkIfEnvironmentVariablesAreSet } from './utils/app.utils';
-import { checkDbConnection } from './db';
+import { checkIfEnvironmentVariablesAreSet } from './utils/app.utils.js';
+import { checkDbConnection } from './db/index.js';
 
 config();
 

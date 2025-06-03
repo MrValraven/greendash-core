@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { usersTable } from './schemas/users.sql';
+import { usersTable } from './schemas/users.sql.js';
 
 config();
 

@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
-import { db } from '../../db';
-import { usersTable } from '../../db/schemas/users.sql';
-import { User, UserField, UserFieldValue } from './authentication.types';
+import { db } from '../../db/index.js';
+import { usersTable } from '../../db/schemas/users.sql.js';
+import { User, UserField, UserFieldValue } from './authentication.types.js';
 
 const createUserInDatabase = async (
   email: string,
