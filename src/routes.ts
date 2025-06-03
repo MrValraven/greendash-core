@@ -1,16 +1,16 @@
 import { Router } from 'express';
-import { BASE_CORE_API_PATH } from './constants/app.constants';
-import authenticationController from './modules/authentication/authentication.controller';
-import { validateBodyData } from './middlewares/validationMiddleware';
-import { verifyToken } from './middlewares/authMiddleware';
+import { BASE_CORE_API_PATH } from './constants/app.constants.js';
+import authenticationController from './modules/authentication/authentication.controller.js';
+import { validateBodyData } from './middlewares/validationMiddleware.js';
+import { verifyToken } from './middlewares/authMiddleware.js';
 import {
   registerSchema,
   loginSchema,
   resetPasswordSchema,
   resetPasswordRequestSchema,
   editUserSchema,
-} from './modules/authentication/authentication.schemas';
-import aiController from './modules/ai/ai.controller';
+} from './modules/authentication/authentication.schemas.js';
+import aiController from './modules/ai/ai.controller.js';
 
 const router = Router();
 
