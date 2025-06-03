@@ -12,6 +12,7 @@ const terminateNodeProcessWithError = () => {
 };
 
 export const checkIfEnvironmentVariablesAreSet = () => {
+  console.log('Checking if all required environment variables are set...');
   let hasMissingEnvironmentVariables = false;
   const requiredEnvironmentVariables = [
     'DATABASE_URL',

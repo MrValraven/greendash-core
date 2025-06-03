@@ -1,5 +1,5 @@
 import { Address } from 'mailtrap/dist';
-import { sender, mailClient } from './mail.config';
+import { sender, mailClient } from './mail.config.js';
 
 export const sendEmail = async (
   recipients: Address[],

@@ -10,6 +10,7 @@ import {
   resetPasswordRequestSchema,
   editUserSchema,
 } from './modules/authentication/authentication.schemas';
+import aiController from './modules/ai/ai.controller';
 
 const router = Router();
 
@@ -58,5 +59,8 @@ router.post(
 
 // Email verification
 router.get(`${BASE_CORE_API_PATH}/users/email/verify`, authenticationController.verifyEmail);
+
+// Email verification
+router.post(`${BASE_CORE_API_PATH}/ai/build`, aiController.buildAiResponse);
 
 export default router;

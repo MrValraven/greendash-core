@@ -5,13 +5,13 @@ import {
   verifyIfRefreshTokenIsInDatabase,
   getUserFromDatabase,
   getUserFromDatabaseViaTokenInfo,
-} from './authentication.utils';
-import { ERRORS } from './authentication.errors';
-import authenticationDB from './authentication.database';
-import mailService from '../mail/mail.service';
-import { EditUserSchema } from './authentication.schemas';
-import { NotificationEmailCategory } from '../mail/mail.types';
-import { User } from './authentication.types';
+} from './authentication.utils.js';
+import { ERRORS } from './authentication.errors.js';
+import authenticationDB from './authentication.database.js';
+import mailService from '../mail/mail.service.js';
+import { EditUserSchema } from './authentication.schemas.js';
+import { NotificationEmailCategory } from '../mail/mail.types.js';
+import { User } from './authentication.types.js';
 
 const registerUserAccount = async (email: string, password: string) => {
   const userInDatabase = await authenticationDB.getUserFromDatabase('email', email);

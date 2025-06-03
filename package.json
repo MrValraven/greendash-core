@@ -25,6 +25,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "mailtrap": "^4.0.0",
+    "openai": "^5.0.1",
     "pg": "^8.13.3",
     "zod": "^3.24.2"
   },
@@ -35,7 +36,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/pg": "^8.11.11",
     "drizzle-kit": "^0.30.5",
-    "tsx": "^4.19.3",
+    "tsx": "^4.19.4",
     "typescript": "^5.7.3"
   }
 }

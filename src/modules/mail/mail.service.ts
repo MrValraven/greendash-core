@@ -1,7 +1,7 @@
-import { sendEmail } from './mail.utils';
-import { VerificationEmailCategory, NotificationEmailCategory } from './mail.types';
-import { BASE_API_URL } from '../../constants/app.constants';
-import { verificationEmailCategories, notificationEmailCategories } from './mail.constants';
+import { sendEmail } from './mail.utils.js';
+import { VerificationEmailCategory, NotificationEmailCategory } from './mail.types.js';
+import { BASE_API_URL } from '../../constants/app.constants.js';
+import { verificationEmailCategories, notificationEmailCategories } from './mail.constants.js';
 
 const sendVerificationEmail = async (
   userEmail: string,

@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import { ERRORS } from './authentication.errors';
-import authenticationMethods from './authentication.methods';
-import { EditUserSchema } from './authentication.schemas';
-import { sendCustomErrorResponse, sendHttpOnlySecureCookie } from './authentication.utils';
+import { ERRORS } from './authentication.errors.js';
+import authenticationMethods from './authentication.methods.js';
+import { EditUserSchema } from './authentication.schemas.js';
+import { sendCustomErrorResponse, sendHttpOnlySecureCookie } from './authentication.utils.js';
 
 const registerUserAccount = async (request: Request, response: Response) => {
   const { email, password } = request.body;
