@@ -4,8 +4,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "npm --import=tsx src/app.ts",
-    "dev": "node --import=tsx --watch src/app.ts",
+    "start": "tsx src/app.ts",
+    "dev": "tsx --watch src/app.ts",
     "build": "tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

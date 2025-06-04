@@ -13,12 +13,12 @@ config();
 const PORT = 3000;
 const app = express();
 
-const apiRateLimiter = rateLimit({
+/* const apiRateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 100, // limit each IP to 100 requests per window
 });
 
-app.use('/api/', apiRateLimiter);
+app.use('/api/', apiRateLimiter); */
 
 app.use(helmet());
 app.use(cookieParser());

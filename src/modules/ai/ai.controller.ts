@@ -15,20 +15,16 @@ async function generateReportSection(topic: string, dataPoints: string[]): Promi
     - Use simple, accessible language without diluting technical accuracy.
     - Cite or align your writing with VSME standards if appropriate.
     - Do not invent facts. Only write based on the input data.
-
-    If the input is too vague or insufficient to write a proper section, don't write anything but make sure it makes sense as the continuation of the following phrase:
-    " ...has implemented a range of practices:". Only give back the continuation of this phrase, not the full sentence.
+    
+    Complete the following sentence:
+    "The company has implemented a range of practices to enhance its sustainability performance, including:"
     `;
 
   const userPrompt = `
-    Write a sustainability report section on the topic: "${topic}".
-
-    Use the following data points:
-        ${dataPoints.map((point: string, i: number) => `- ${point}`).join('\n')}
-        `;
+    Write a sustainability report section on the topic: "${topic}".`;
 
   const completion = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
+    model: 'gpt-4.1-nano',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -53,7 +49,7 @@ const buildAiResponseController = async (request: Request, response: Response) =
     .then((section) => {
       response.status(200).json({
         success: true,
-        section,
+        sectionFinal: section,
       });
     })
     .catch((error) => {
