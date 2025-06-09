@@ -9,7 +9,7 @@ async function generateReportSection(
 ): Promise<string | null> {
   const systemPrompt = `You are a sustainability reporting consultant that is developing a sustainability report under VSME from CSRD.`;
 
-  const userPrompt = `Write a short text to include under the ${reportChapterName}, about ${userInput}. Please be succint and concise, and use a professional tone. The text should be suitable for a sustainability report. Do not invent any made up data, just use the information provided in a language suitable for a report. Do not come up with any titles.`;
+  const userPrompt = `Write a short text to include under the ${reportChapterName}, about ${userInput}. Please be succinct and concise, and use a professional tone. The text should be suitable for a sustainability report. Do not invent any made up data, just use the information provided in a language suitable for a report. Do not come up with any titles.`;
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4.1-nano',
