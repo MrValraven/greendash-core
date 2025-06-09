@@ -24,7 +24,7 @@ const registerUserAccount = async (email: string, password: string) => {
   const createdUser = await authenticationDB.createUserInDatabase(email, passwordHash);
   const verificationToken = generateToken(createdUser.id, 'verifyToken', '1d');
 
-  await mailService.sendVerificationEmail(email, 'emailVerification', verificationToken);
+  //await mailService.sendVerificationEmail(email, 'emailVerification', verificationToken);
 
   return createdUser;
 };
