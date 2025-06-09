@@ -10,15 +10,20 @@ import { checkDbConnection } from './db/index.js';
 
 config();
 
+import cors from 'cors';
+
 const PORT = 3000;
 const app = express();
 
-const apiRateLimiter = rateLimit({
+/* const apiRateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 100, // limit each IP to 100 requests per window
 });
 
-app.use('/api/', apiRateLimiter);
+app.use('/api/', apiRateLimiter); */
+
+// Enable CORS for all routes and origins
+app.use(cors());
 
 app.use(helmet());
 app.use(cookieParser());

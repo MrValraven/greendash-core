@@ -9,5 +9,5 @@ export const mailClient = new MailtrapClient({
 
 export const sender = {
   email: 'hello@demomailtrap.co',
-  name: 'Mailtrap Test',
+  name: 'Welcome to Greendash!',
 };

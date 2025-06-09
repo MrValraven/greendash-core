@@ -1,7 +1,7 @@
 import { pgEnum, pgTable as table } from 'drizzle-orm/pg-core';
 import { integer, varchar, timestamp, boolean } from 'drizzle-orm/pg-core';
 
-import { timestamps } from './columns.helpers.js';
+/* import { timestamps } from './columns.helpers.js'; */
 
 export const rolesEnum = pgEnum('roles', ['user', 'admin', 'organization']);
 export const accountStatusEnum = pgEnum('account_status', [
@@ -42,5 +42,7 @@ export const usersTable = table('users', {
   // Tracking User Activity
   last_login: timestamp('last_login'),
   terms_accepted_at: timestamp('terms_accepted_at'),
-  ...timestamps,
+  updated_at: timestamp('updated_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  deleted_at: timestamp('deleted_at'),
 });
