@@ -10,6 +10,8 @@ import { checkDbConnection } from './db/index.js';
 
 config();
 
+import cors from 'cors';
+
 const PORT = 3000;
 const app = express();
 
@@ -19,6 +21,9 @@ const app = express();
 });
 
 app.use('/api/', apiRateLimiter); */
+
+// Enable CORS for all routes and origins
+app.use(cors());
 
 app.use(helmet());
 app.use(cookieParser());
