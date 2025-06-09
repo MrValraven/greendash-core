@@ -14,6 +14,7 @@ import cors from 'cors';
 
 const PORT = 3000;
 const app = express();
+app.options('*', cors()); // Handle preflight for all routes
 
 /* const apiRateLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
