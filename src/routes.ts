@@ -60,7 +60,7 @@ router.post(
 // Email verification
 router.get(`${BASE_CORE_API_PATH}/users/email/verify`, authenticationController.verifyEmail);
 
-// Email verification
+// AI Report build
 router.post(`${BASE_CORE_API_PATH}/ai/build`, aiController.buildAiResponse);
 
 export default router;
