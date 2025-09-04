@@ -1,0 +1,439 @@
+openapi: 3.0.3
+info:
+  title: Greendash Core API
+  version: 1.0.0
+  description: |
+    Greendash API
+
+servers: []
+  # - url: 
+  # description:
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    basePath:
+      name: basePath
+      in: path
+      required: true
+      schema:
+        type: string
+        default: api/v1  
+
+  schemas:
+    AuthSuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+    
+    EditUserRequest:
+      type: object
+      description: Fields that can be edited for the current user
+      properties:
+        email:
+          type: string
+          format: email
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+        currentPassword:
+          type: string
+          format: password
+          minLength: 8
+
+    GenericMessage:
+      type: object
+      properties:
+        message:
+          type: string
+
+    LoginRequest:
+      type: object
+      description: Payload for logging in
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    PasswordRequest:
+      type: object
+      description: Request a password‑reset email
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+
+    RegisterRequest:
+      type: object
+      description: Payload for user registration
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+
+    ResetPasswordRequest:
+      type: object
+      description: Payload for resetting a password 
+      required:
+        - token
+        - newPassword
+      properties:
+        token:
+          type: string
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+
+    UserResponse:
+      type: object
+      description: Current user profile
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: 
+            - 'user'
+            - 'admin'
+            - 'organization'
+
+paths:
+  # Authentication routes
+  /{basePath}/users/login:
+    post:
+      summary: Log in a user
+      operationId: loginUserAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  /{basePath}/users/logout:
+    get:
+      summary: Log out the current user
+      operationId: logoutUserAccount
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  /{basePath}/tokens/refresh:
+    get:
+      summary: Refresh the access token using a valid refresh token
+      operationId: refreshAccessToken 
+      responses:
+        '200':
+          description: Access token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  # User routes
+  /{basePath}/users/me:
+    get:
+      summary: Retrieve the currently authenticated user
+      operationId: getCurrentUserData
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  /{basePath}/users/register:
+    post:
+      summary: Register a new user account
+      operationId: registerUserAccount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '409':
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  /{basePath}/users:
+    put:
+      summary: Edit the current user's data
+      operationId: editUserAccount
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditUserRequest'
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '401':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+                
+  # Password Management 
+  /{basePath}/users/password/reset-request:
+    post:
+      summary: Request a password‑reset email
+      operationId: requestPasswordReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordRequest'
+      responses:
+        '200':
+          description: Password reset email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  /{basePath}/users/password/reset:
+    post:
+      summary: Reset password using a token received by email
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '401':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  # Email verification
+  /{basePath}/users/email/verify:
+    get:
+      summary: Verify a user's email address (token passed as query param)
+      operationId: verifyEmail
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Verification token sent to the user's email
+      responses:
+        '200':
+          description: Email verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '400':
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+
+  # AI report build
+  /{basePath}/ai/build:
+    post:
+      summary: Build an AI‑generated report
+      operationId: buildAiResponse
+      responses:
+        '200':
+          description: AI report generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reportId:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, processing, completed, failed]
+                  resultUrl:
+                    type: string
+                    format: uri
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericMessage'
